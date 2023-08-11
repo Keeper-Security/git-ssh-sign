@@ -1,8 +1,8 @@
 # Sign Git commits with SSH Keys
 
-Signing your git commits is important. It verifies authorship, ensures the integrity of committed content, prevents identity spoofing, and establishes non-repudiation. Using a cryptographic signature with your private key demonstrates a commitment to the authenticity and security of your contributions, building trust among collaborators and protecting the repository from potential tampering and malicious code.
+Signing your git commits is an important security measure which verifies authorship, ensures the integrity of committed content, prevents identity spoofing, and establishes non-repudiation. Using a cryptographic signature with your private key demonstrates a commitment to the authenticity and security of your contributions, building trust among collaborators and protecting the repository from potential tampering and malicious code.
 
-This integration will let you sign git commits with an SSH key in your Keeper Vault (via Keeper Secrets Manager) rather than using a key stored on disk.
+This integration allows developers to sign git commits with an SSH key stored in the Keeper Vault (via Keeper Secrets Manager) rather than using a key stored on disk.
 
 ## Requirements
 
@@ -16,13 +16,13 @@ Development requires:
 
 ### Secrets Manager Configuration
 
-This integration uses the zero-knowledge Secrets Manager to fetch the SSH key from your vault. It expects to find the Secrets Manager configuration file at `.keeper/ssh/config.json` in the user's home directory for Windows and UNIX systems. If this configuration is not found, it will also check `.keeper/config.json` for an existing configuration from another integration. **The Secrets Manager application must have access to the shared folder in which your SSH key is stored**.
+This integration uses the zero-knowledge [Keeper Secrets Manager](https://docs.keeper.io/secrets-manager/secrets-manager/overview) to fetch the SSH key from your vault. It expects to find the Secrets Manager configuration file at `.keeper/ssh/config.json` in the user's home directory for Windows and UNIX systems. If this configuration is not found, it will also check `.keeper/config.json` for an existing configuration from another integration. **The Secrets Manager application must have access to the shared folder in which your SSH key is stored**.
 
 For help in setting up your application and obtaining your configuration file, you can find [detailed instructions here](https://docs.keeper.io/secrets-manager/secrets-manager/about/secrets-manager-configuration#creating-a-secrets-manager-configuration)
 
 ### Git Config
 
-After successfully configuring Secrets Manager, you can now configure Git to sign your commits automatically. This can be done locally or globally, depending on your needs.
+After successfully configuring Keeper Secrets Manager, you can now configure Git to sign your commits automatically. This can be done locally or globally, depending on your needs.
 
 Four pieces of information are necessary for your config:
 
@@ -31,7 +31,7 @@ Four pieces of information are necessary for your config:
 3. Tell git the location of this integrations binary.
 4. Tell git the UID of the SSH key to be used to sign.
 
-We can do this locally with the following commands (add the `--global` flag to set these globally):
+This can be done locally with the following commands (add the `--global` flag to set these globally):
 
 ```shell
 git config commit.gpgsign true
@@ -59,7 +59,7 @@ Git is now configured to automatically sign all commits, regardless of whether y
 
 You can confirm your commit has been signed with `git show --pretty=raw`.
 
-## Contirbuting
+## Contributing
 
 This module uses the built-in golang tooling for building and testing. For example:
 
