@@ -15,15 +15,15 @@ type ConfigOptions struct {
 
 // Build the config options based on the given options.
 func buildConfigOptions(h string) ConfigOptions {
- 	return ConfigOptions{
-		ConfigFile:       filepath.Join(h, ".keeper", "ssh", "config.json"),
-		ConfigFileBackup: filepath.Join(h, ".keeper", "config.json"),
-	} 
+	return ConfigOptions{
+		ConfigFile:       filepath.Join(h, ".config", "keeper", "ssh-sign.json"),
+		ConfigFileBackup: filepath.Join(h, "ssh-sign.json"),
+	}
 }
 
 // Find the config.json file
 func getConfig(options ConfigOptions) (string, error) {
-	// If the ConfigFile exists, use it, else check ConfigFileBackup. If 
+	// If the ConfigFile exists, use it, else check ConfigFileBackup. If
 	// neither exist, returns an error.
 	if _, err := os.Stat(options.ConfigFile); err == nil {
 		return options.ConfigFile, nil
@@ -34,7 +34,7 @@ func getConfig(options ConfigOptions) (string, error) {
 	}
 }
 
-// Fetch a private key from the Vault via the Keeper Secrets Manager based on 
+// Fetch a private key from the Vault via the Keeper Secrets Manager based on
 // the UID in the git config.
 func FetchPrivateKey(uid string) (string, error) {
 
@@ -61,8 +61,8 @@ func FetchPrivateKey(uid string) (string, error) {
 		return "", fmt.Errorf("no records found for UID: %s", uid)
 	}
 
-	// GetFieldsByType returns an array of Field objects that match the 
-	// specified type. In this case, we are filtering for fields of type 
+	// GetFieldsByType returns an array of Field objects that match the
+	// specified type. In this case, we are filtering for fields of type
 	// "keyPair", as we only care about the private key.
 	keys := records[0].GetFieldsByType("keyPair")[0]["value"].([]interface{})[0]
 	privateKey := keys.(map[string]interface{})["privateKey"].(string)
