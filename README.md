@@ -13,14 +13,19 @@ Development requires:
 
 Usage requires:
 
-- [Keeper Secrets Manager Enabled](https://docs.keeper.io/secrets-manager/secrets-manager/quick-start-guide)
+- [Keeper Secrets Manager](https://docs.keeper.io/secrets-manager/secrets-manager/overview)
+  (KSM) [Enabled](https://docs.keeper.io/secrets-manager/secrets-manager/quick-start-guide)
 - A Secrets Manager Application with read-only access to an SSH key
 
 ## Set up
 
-### Secrets Manager Configuration
+### KSM Configuration
 
-This integration uses the zero-knowledge [Keeper Secrets Manager](https://docs.keeper.io/secrets-manager/secrets-manager/overview) to fetch the SSH key from your vault. It expects to find the Secrets Manager configuration file at `.keeper/ssh/config.json` in the user's home directory for Windows and UNIX systems. If this configuration is not found, it will also check `.keeper/config.json` for an existing configuration from another integration. **The Secrets Manager application must have access to the shared folder in which your SSH key is stored**.
+This code uses KSM to fetch the SSH key from Keeper.
+It expects a KSM Application Configuration file at `.keeper/ssh/config.json` relative to the user's home directory.
+It will fall back to `.keeper/config.json` for compatibility with existing integrations.
+
+❗The KSM Application must have access to a Shared Folder that contains the SSH key.
 
 Here is some PowerShell to create the configuration from a One-time Access Token:
 
@@ -43,32 +48,30 @@ ksm init default --plain $TOKEN >| "${HOME}/.keeper/ssh/config.json.new"
 test $? -eq 0 && mv -f $HOME/.keeper/ssh/config.json{.new,}
 ```
 
-Refer to the [Keeper documentation](https://docs.keeper.io/secrets-manager/secrets-manager/about/one-time-token)
+Refer to the KSM [documentation](https://docs.keeper.io/secrets-manager/secrets-manager/about/one-time-token)
 for help getting a One-time Access Token.
 
 ### Git Config
 
-After successfully configuring Keeper Secrets Manager,
-configure Git to sign your commits using the SSH key in the Keeper Vault.
-This can be done locally or globally.
+Next, configure Git to sign your commits using the SSH key from the Keeper Vault.
 
-Either way, Git needs the UID of the Secret containing the SSH key and the path to the ssh-sign executable.
+Git needs the UID of the SSH key in the Keeper Vault, to the ssh-sign executable.
 
-Add `--global` after `git config` but before the name of the option in each of the commands below to make the configuration global:
+❗Add `--global` after `git config` but before the name of the option in each of the commands below to make the configuration global:
 
 ```shell
 git config gpg.format ssh
 git config gpg.ssh.program <path to this binary>
-git config user.signingkey <UID of the SSH Key>
+git config user.signingkey <SSH Key UID>
 ```
 
-Your git config will now include these attributes:
+The resulting Git configuration should look something like this:
 
 ```ini
 [gpg]
     format = ssh
 [user]
-    signingKey = <UID of the SSH Key>
+    signingKey = <SSH Key UID>
 [gpg "ssh"]
     program = path\to\ssh-sign.exe
 ```
@@ -89,7 +92,7 @@ git config commit.gpgsign true
 
 ## Troubleshooting
 
-Git will execute `path\to\ssh-sign.exe -Y sign -Y sign -n git -f <Secret UID> <input file>`.
+Git will execute `path/to/ssh-sign.exe -Y sign -Y sign -n git -f <SSH Key UID> <input file>`.
 It expects to write an output file with the same path as the input file with the extension `.sig`.
 Thus to test whether the signing operation will work after creating the configuration,
 run the aforementioned command on a file in a folder you can write to.
