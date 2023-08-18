@@ -55,15 +55,15 @@ for help getting a One-time Access Token.
 
 Next, configure Git to sign your commits using the SSH key from the Keeper Vault.
 
-Git needs the UID of the SSH key in the Keeper Vault, to the ssh-sign executable.
-
-❗Add `--global` after `git config` but before the name of the option in each of the commands below to make the configuration global:
-
 ```shell
 git config gpg.format ssh
 git config gpg.ssh.program <path to this binary>
 git config user.signingkey <SSH Key UID>
 ```
+
+❗Add `--global` after `git config` but before the name of the option in each of the commands below to make the configuration global:
+
+Note that the executable expects the Git signing key to be the UID of the SSH key in the Keeper Vault.
 
 The resulting Git configuration should look something like this:
 
