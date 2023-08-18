@@ -10,7 +10,11 @@ Development requires:
 
 - Git > 2.34.0
 - Go > 1.20
+
+Usage requires:
+
 - [Keeper Secrets Manager Enabled](https://docs.keeper.io/secrets-manager/secrets-manager/quick-start-guide)
+- A Secrets Manager Application with read-only access to an SSH key
 
 ## Set up
 
@@ -40,50 +44,52 @@ test $? -eq 0 && mv -f $HOME/.keeper/ssh/config.json{.new,}
 ```
 
 Refer to the [Keeper documentation](https://docs.keeper.io/secrets-manager/secrets-manager/about/one-time-token)
-for help getting a _One-time Access Token_.
+for help getting a One-time Access Token.
 
 ### Git Config
 
-After successfully configuring Keeper Secrets Manager, you can now configure Git to sign your commits automatically. This can be done locally or globally, depending on your needs.
+After successfully configuring Keeper Secrets Manager,
+configure Git to sign your commits using the SSH key in the Keeper Vault.
+This can be done locally or globally.
 
-Four pieces of information are necessary for your config:
+Either way, Git needs the UID of the Secret containing the SSH key and the path to the ssh-sign executable.
 
-1. Tell git you want to sign all commits.
-2. Tell git you want to use SSH signing over the default GPG signing.
-3. Tell git the location of this integrations binary.
-4. Tell git the UID of the SSH key to be used to sign.
-
-This can be done locally with the following commands (add the `--global` flag to set these globally):
+Add `--global` after `git config` but before the name of the option in each of the commands below to make the configuration global:
 
 ```shell
-git config commit.gpgsign true
 git config gpg.format ssh
 git config gpg.ssh.program <path to this binary>
-git config user.signingkey <SSH Key UID>
+git config user.signingkey <UID of the SSH Key>
 ```
 
 Your git config will now include these attributes:
 
 ```ini
-[commit]
-	gpgsign = true
 [gpg]
-	format = ssh
+    format = ssh
 [user]
-	signingKey = <SSH Key UID
+    signingKey = <UID of the SSH Key>
 [gpg "ssh"]
-	program = path\to\sshsign.exe
+    program = path\to\ssh-sign.exe
 ```
 
 ## Usage
 
-Git is now configured to automatically sign all commits, regardless of whether you use the terminal or an IDE interface to interact with Git. It also removes the need to use the `-S` flag for commit signing.
+Simply run `git commit` with the `-S` switch to sign a commit!
 
 You can confirm your commit has been signed with `git show --pretty=raw`.
 
+### Automatic signing
+
+To sign commits automatically, i.e., without the `-S`, set `commit.gpgsign` to `true`
+
+```shell
+git config commit.gpgsign true
+```
+
 ## Troubleshooting
 
-Git will execute `path\to\sshsign.exe -Y sign -Y sign -n git -f <Secret UID> <input file>`.
+Git will execute `path\to\ssh-sign.exe -Y sign -Y sign -n git -f <Secret UID> <input file>`.
 It expects to write an output file with the same path as the input file with the extension `.sig`.
 Thus to test whether the signing operation will work after creating the configuration,
 run the aforementioned command on a file in a folder you can write to.
