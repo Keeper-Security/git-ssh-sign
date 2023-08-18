@@ -43,7 +43,7 @@ Alternatively, build the binary:
 go build -o ssh-sign ./cmd/ssh-sign
 ```
 
-Then set the *TOKEN* variable and run the Bash *or* PowerShell below to create the configuration:
+Then set the `TOKEN` variable and run the Bash **or** PowerShell below to create the configuration:
 
 ```bash
 TOKEN="One-time Access Token from Keeper"
@@ -78,14 +78,14 @@ page walks through creating a KSM Application Configuration via the UI.
 First, globally configure Git to use the binary to sign SSH format commits:
 
 ```shell
-git config --global gpg.ssh.program <path to this binary>
+git config --global gpg.ssh.program path/to/ssh-sign
 ```
 
 Afterward, `~/.gitconfig` should contain:
 
 ```ini
 [gpg "ssh"]
-    program = path\to\ssh-sign.exe
+    program = path/to/ssh-sign
 ```
 
 ### Repositories
@@ -94,7 +94,7 @@ Next, configure a Git repository to sign your commits using the SSH key from the
 
 ```shell
 git config gpg.format ssh
-git config user.signingkey <SSH Key UID>
+git config user.signingkey SSH-Key-UID
 ```
 
 Note that the executable expects the Git signing key to be the UID of the SSH key in the Keeper Vault.
@@ -105,9 +105,9 @@ The resulting Git configuration should look something like this:
 [gpg]
     format = ssh
 [user]
-    signingKey = <SSH Key UID>
+    signingKey = SSH-Key-UID
 [gpg "ssh"]
-    program = path\to\ssh-sign.exe
+    program = path/to/ssh-sign
 ```
 
 ## Usage
@@ -126,12 +126,14 @@ git config commit.gpgsign true
 
 ## Troubleshooting
 
-Git will execute `path/to/ssh-sign.exe -Y sign -Y sign -n git -f <SSH Key UID> <input file>`.
+Git will execute `path/to/ssh-sign -Y sign -Y sign -n git -f SSH-Key-UID some-input.txt`.
 It expects to write an output file with the same path as the input file with the extension `.sig`.
 Thus to test whether the signing operation will work after creating the configuration,
 run the aforementioned command on a file in a folder you can write to.
 
-If it works, `<input file>.sig` will exist and its contents will be a valid signature, e.g.:
+Thus, assuming `some-input.txt` exists in the current directory
+then running the above will create a file named `some-input.txt.sig`
+that will contain a signature, e.g.:
 
 ```PEM
 -----BEGIN SSH SIGNATURE-----
@@ -145,7 +147,7 @@ rIalDYl8KKK+DPrwiF4KCKoovNN2xXu04ljxLH9O3byUcA==
 
 ## Contributing
 
-This module uses the built-in Golang tooling for building and testing. For example:
+This module uses the built-in Golang tooling for building and testing:
 
 ```shell
 # Run unit tests
@@ -155,4 +157,4 @@ go test ./...
 go build -o ssh-sign.exe ./cmd/ssh-sign/main.go
 ```
 
-You can submit issues and enhancement requests [here](https://github.com/Keeper-Security/git-ssh-sign/issues).
+Submit an [issue](https://github.com/Keeper-Security/git-ssh-sign/issues).
