@@ -64,5 +64,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	os.WriteFile(fmt.Sprintf("%s.sig", commitToSign), sig, fileMode)
+	if err := os.WriteFile(fmt.Sprintf("%s.sig", commitToSign), sig, fileMode); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	} else {
+		os.Exit(0)
+	}
 }
