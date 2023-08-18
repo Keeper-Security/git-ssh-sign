@@ -37,19 +37,13 @@ Run one or the other then skip ahead to [Repositories](#repositories)
 
 #### Step-by-step
 
-Alternatively, run the PowerShell to create the configuration from a One-time Access Token:
+Alternatively, build the binary:
 
-```PowerShell
-$Token = "One-time Access Token from Keeper"
-if (!(Test-Path "${env:USERPROFILE}\.config\keeper")) {
-    New-Item -Type Directory "${env:USERPROFILE}\.config\keeper"
-}
-$Config = if (ksm init default --plain $Token) {
-    Set-Content -Path "${env:USERPROFILE}\.config\keeper\ssh-sign.json" -Value $Config
-}
+```shell
+go build -o ssh-sign ./cmd/ssh-sign
 ```
 
-Or Bash:
+Then set the *TOKEN* variable and run the Bash *or* PowerShell below to create the configuration:
 
 ```bash
 TOKEN="One-time Access Token from Keeper"
@@ -57,6 +51,16 @@ CONFDIR="${HOME}/.config/keeper"
 test -d $CONFDIR || mkdir -m 0700 -p "${CONFDIR}"
 ksm init default --plain $TOKEN >| "${CONFDIR}/ssh-sign.json.new"
 test $? -eq 0 && mv -f $CONFDIR/ssh-sign.json{.new,}
+```
+
+```PowerShell
+$TOKEN = "One-time Access Token from Keeper"
+if (!(Test-Path "${env:USERPROFILE}\.config\keeper")) {
+    New-Item -Type Directory "${env:USERPROFILE}\.config\keeper"
+}
+$Config = if (ksm init default --plain $TOKEN) {
+    Set-Content -Path "${env:USERPROFILE}\.config\keeper\ssh-sign.json" -Value $Config
+}
 ```
 
 Refer to the KSM [documentation](https://docs.keeper.io/secrets-manager/secrets-manager/about/one-time-token)
