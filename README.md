@@ -17,51 +17,81 @@ Usage requires:
   (KSM) [Enabled](https://docs.keeper.io/secrets-manager/secrets-manager/quick-start-guide)
 - A Secrets Manager Application with read-only access to an SSH key
 
-## Set up
+## KSM Set up
 
-### KSM Configuration
-
-This code uses KSM to fetch the SSH key from Keeper.
-It expects a KSM Application Configuration file at `.keeper/ssh/config.json` relative to the user's home directory.
-It will fall back to `.keeper/config.json` for compatibility with existing integrations.
+The integration expects a KSM Application Configuration file at either
+`.config/keeper/ssh-sign.json` or
+`ssh-sign.json`
+relative to the user's home directory.
 
 ❗The KSM Application must have access to a Shared Folder that contains the SSH key.
 
-Here is some PowerShell to create the configuration from a One-time Access Token:
+### CLI-based Configuration
+
+#### Scripts
+
+The `configure-git.bash` script will build the integration and configure Git (globally) to use it.
+The `Update-GitConfig.ps1` will do the same using PowerShell.
+
+Run one or the other then skip ahead to [Repositories](#repositories)
+
+#### Step-by-step
+
+Alternatively, run the PowerShell to create the configuration from a One-time Access Token:
 
 ```PowerShell
 $Token = "One-time Access Token from Keeper"
-if (!(Test-Path "${env:USERPROFILE}\.keeper\.ssh")) {
-    New-Item -Type Directory "${env:USERPROFILE}\.keeper\.ssh"
+if (!(Test-Path "${env:USERPROFILE}\.config\keeper")) {
+    New-Item -Type Directory "${env:USERPROFILE}\.config\keeper"
 }
 $Config = if (ksm init default --plain $Token) {
-    Set-Content -Path "${env:USERPROFILE}\.keeper\ssh\config.json" -Value $Config
+    Set-Content -Path "${env:USERPROFILE}\.config\keeper\ssh-sign.json" -Value $Config
 }
 ```
 
-Or bash for Linux:
+Or Bash:
 
 ```bash
 TOKEN="One-time Access Token from Keeper"
-test -d "${HOME}/.keeper/ssh" || mkdir -m 0700 -p "${HOME}/.keeper/ssh"
-ksm init default --plain $TOKEN >| "${HOME}/.keeper/ssh/config.json.new"
-test $? -eq 0 && mv -f $HOME/.keeper/ssh/config.json{.new,}
+CONFDIR="${HOME}/.config/keeper"
+test -d $CONFDIR || mkdir -m 0700 -p "${CONFDIR}"
+ksm init default --plain $TOKEN >| "${CONFDIR}/ssh-sign.json.new"
+test $? -eq 0 && mv -f $CONFDIR/ssh-sign.json{.new,}
 ```
 
 Refer to the KSM [documentation](https://docs.keeper.io/secrets-manager/secrets-manager/about/one-time-token)
 for help getting a One-time Access Token.
 
-### Git Config
+### UI-based Configuration
 
-Next, configure Git to sign your commits using the SSH key from the Keeper Vault.
+The KSM [configuration](https://docs.keeper.io/secrets-manager/secrets-manager/about/secrets-manager-configuration)
+page walks through creating a KSM Application Configuration via the UI.
+
+### Git Configuration
+
+### Global
+
+First, globally configure Git to use the binary to sign SSH format commits:
+
+```shell
+git config --global gpg.ssh.program <path to this binary>
+```
+
+Afterward, `~/.gitconfig` should contain:
+
+```ini
+[gpg "ssh"]
+    program = path\to\ssh-sign.exe
+```
+
+### Repositories
+
+Next, configure a Git repository to sign your commits using the SSH key from the Keeper Vault.
 
 ```shell
 git config gpg.format ssh
-git config gpg.ssh.program <path to this binary>
 git config user.signingkey <SSH Key UID>
 ```
-
-❗Add `--global` after `git config` but before the name of the option in each of the commands below to make the configuration global:
 
 Note that the executable expects the Git signing key to be the UID of the SSH key in the Keeper Vault.
 
@@ -84,7 +114,7 @@ You can confirm your commit has been signed with `git show --pretty=raw`.
 
 ### Automatic signing
 
-To sign commits automatically, i.e., without the `-S`, set `commit.gpgsign` to `true`
+To sign commits automatically for a repository, i.e., without the `-S` run:
 
 ```shell
 git config commit.gpgsign true
