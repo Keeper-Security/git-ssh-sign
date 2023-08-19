@@ -34,7 +34,7 @@ relative to the user's home directory.
 
 #### Scripts
 
-The `configure-git.bash` script will build the integration and configure Git (globally) to use it.
+The `configure-git.sh` script will build the integration and configure Git (globally) to use it.
 The `Update-GitConfig.ps1` will do the same using PowerShell.
 
 Run one or the other then skip ahead to [Repositories](#repositories)
@@ -158,7 +158,7 @@ This module uses the built-in Golang tooling for building and testing:
 go test ./...
 
 # Build a local binary
-go build -o ssh-sign.exe ./cmd/ssh-sign/main.go
+go build -o ssh-sign ./cmd/ssh-sign/main.go
 ```
 
-Submit an [issue](https://github.com/Keeper-Security/git-ssh-sign/issues).
+Submit an [issue](issues/)
