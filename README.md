@@ -161,4 +161,4 @@ go test ./...
 go build -o ssh-sign ./cmd/ssh-sign/main.go
 ```
 
-Submit an [issue](issues/)
+Submit an [issue](https://github.com/Keeper-Security/git-ssh-sign/issues)
