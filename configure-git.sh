@@ -18,16 +18,16 @@ for command in "${!commands[@]}"; do
     }
     eval "$command=$path"
 done
-config_dir="${HOME}/.config/keeper/ssh"
-
-$ksm init default --plain $token >| config.json
+config_dir="${HOME}/.config/keeper"
+umask 077
+$ksm init default --plain $token >| ssh-sign.json
 if test $? -eq 0
 then
-    test -d "${config_dir}" || mkdir -m 0700 -p "${config_dir}"
-    mv -f config.json "${config_dir}/config.json"
+    test -d "${config_dir}" || mkdir -p "${config_dir}"
+    mv -f ssh-sign.json "${config_dir}/ssh-sign.json"
 else
     echo "Failure executing '$ksm init default --plain $token'"
-    rm -f config.json
+    rm -f ssh-sign.json
     exit 1
 fi
 for cmd in ./cmd/ssh-sign; do # because AI wrote it for me. 🤷

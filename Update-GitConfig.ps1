@@ -4,22 +4,23 @@
 #>
 param (
     # Keeper Secrets Manager One-time Access Token"
-    [string]$AccessToken,
-    [string]$ConfigurationDirectory = "${env:USERPROFILE}\.config\keeper\ssh"
+    [Parameter(Mandatory)][string]$AccessToken,
+    [string]$ConfigurationDirectory = "${env:USERPROFILE}\.config\keeper",
+    [string]$Ksm = (Get-Command 'ksm' | Select-Object -ExpandProperty Source),
+    [string]$Go = (Get-Command 'go' | Select-Object -ExpandProperty Source)
 )
 #region Initialize KSM configuration
-Invoke-Command { ksm init default --plain $args } -ArgumentList $AccessToken |
-Set-Variable ConfigJson
+& $Ksm init default --plain $AccessToken | Set-Variable ConfigJson
 if (!(Test-Path $ConfigurationDirectory)) {
     New-Item -Type Directory $ConfigurationDirectory
 }
-Set-Content "${ConfigurationDirectory}\config.json" -Value $ConfigJson
+Set-Content "${ConfigurationDirectory}\ssh-sign.json" -Value $ConfigJson
 #endregion
 #region build ssh-sign.exe
 foreach ($Command in (Get-ChildItem -Path .\cmd)) {
-    Invoke-Command { go build -o $args } -ArgumentList "$($Command.Name).exe", $Command.FullName
+    & $Go build -o "$($Command.Name).exe" $Command
 }
 #endregion
 #region Configure Git to use ssh-sign.exe
-git config --global gpg.ssh.program ((Get-Item 'ssh-sign.exe').FullName.Replace('\\', '/'))
+git config --global gpg.ssh.program "$(Get-Item 'ssh-sign.exe')"
 #endregion
