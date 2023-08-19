@@ -1,8 +1,12 @@
-# Sign Git commits with SSH Keys
+# Git commit signing with SSH Keys in Keeper
 
-Signing your git commits is an important security measure which verifies authorship, ensures the integrity of committed content, prevents identity spoofing, and establishes non-repudiation. Using a cryptographic signature with your private key demonstrates a commitment to the authenticity and security of your contributions, building trust among collaborators and protecting the repository from potential tampering and malicious code.
+This integration enables Git to sign commits using an SSH key stored in Keeper.
 
-This integration allows developers to sign git commits with an SSH key stored in the Keeper Vault (via Keeper Secrets Manager) rather than using a key stored on disk.
+Signing Git commits is an important security measure that verifies authorship,
+and ensures the integrity of the changes.
+Just as importantly,
+signing commits shows a commitment to authenticity and security,
+helping to build trust in the community.
 
 ## Requirements
 
@@ -10,65 +14,151 @@ Development requires:
 
 - Git > 2.34.0
 - Go > 1.20
-- [Keeper Secrets Manager Enabled](https://docs.keeper.io/secrets-manager/secrets-manager/quick-start-guide)
 
-## Set up
+Usage requires:
 
-### Secrets Manager Configuration
+- [Keeper Secrets Manager](https://docs.keeper.io/secrets-manager/secrets-manager/overview)
+  (KSM) must be [enabled](https://docs.keeper.io/secrets-manager/secrets-manager/quick-start-guide)
+- A Secrets Manager Application with read-only access to an SSH key
 
-This integration uses the zero-knowledge [Keeper Secrets Manager](https://docs.keeper.io/secrets-manager/secrets-manager/overview) to fetch the SSH key from your vault. It expects to find the Secrets Manager configuration file at `.keeper/ssh/config.json` in the user's home directory for Windows and UNIX systems. If this configuration is not found, it will also check `.keeper/config.json` for an existing configuration from another integration. **The Secrets Manager application must have access to the shared folder in which your SSH key is stored**.
+## KSM Set up
 
-For help in setting up your application and obtaining your configuration file, you can find [detailed instructions here](https://docs.keeper.io/secrets-manager/secrets-manager/about/secrets-manager-configuration#creating-a-secrets-manager-configuration)
+The integration expects a KSM Application Configuration file at either
+`.config/keeper/ssh-sign.json` or
+`ssh-sign.json`
+relative to the user's home directory.
 
-### Git Config
+❗The KSM Application must have access to a Shared Folder that contains the SSH key.
 
-After successfully configuring Keeper Secrets Manager, you can now configure Git to sign your commits automatically. This can be done locally or globally, depending on your needs.
+### CLI-based Configuration
 
-Four pieces of information are necessary for your config:
+#### Scripts
 
-1. Tell git you want to sign all commits.
-2. Tell git you want to use SSH signing over the default GPG signing.
-3. Tell git the location of this integrations binary.
-4. Tell git the UID of the SSH key to be used to sign.
+The `configure-git.sh` script will build the integration and configure Git (globally) to use it.
+The `Update-GitConfig.ps1` will do the same using PowerShell.
 
-This can be done locally with the following commands (add the `--global` flag to set these globally):
+Run one or the other then skip ahead to [Repositories](#repositories)
+
+#### Step-by-step
+
+Alternatively, build the binary:
 
 ```shell
-git config commit.gpgsign true
-git config gpg.format ssh
-git config gpg.ssh.program <path to this binary>
-git config user.signingkey <SSH Key UID>
+go build -o ssh-sign ./cmd/ssh-sign
 ```
 
-Your git config will now include these attributes:
+Then set the `TOKEN` variable and run the Bash **or** PowerShell below to create the configuration:
+
+```bash
+TOKEN="One-time Access Token from Keeper"
+CONFDIR="${HOME}/.config/keeper"
+test -d $CONFDIR || mkdir -m 0700 -p "${CONFDIR}"
+ksm init default --plain $TOKEN >| "${CONFDIR}/ssh-sign.json.new"
+test $? -eq 0 && mv -f $CONFDIR/ssh-sign.json{.new,}
+```
+
+```PowerShell
+$TOKEN = "One-time Access Token from Keeper"
+if (!(Test-Path "${env:USERPROFILE}\.config\keeper")) {
+    New-Item -Type Directory "${env:USERPROFILE}\.config\keeper"
+}
+$Config = if (ksm init default --plain $TOKEN) {
+    Set-Content -Path "${env:USERPROFILE}\.config\keeper\ssh-sign.json" -Value $Config
+}
+```
+
+Refer to the KSM [documentation](https://docs.keeper.io/secrets-manager/secrets-manager/about/one-time-token)
+for help getting a One-time Access Token.
+
+### UI-based Configuration
+
+The KSM [configuration](https://docs.keeper.io/secrets-manager/secrets-manager/about/secrets-manager-configuration)
+page walks through creating a KSM Application Configuration via the UI.
+
+### Git Configuration
+
+### Global
+
+First, globally configure Git to use the binary to sign SSH format commits:
+
+```shell
+git config --global gpg.ssh.program path/to/ssh-sign
+```
+
+Afterward, `~/.gitconfig` should contain:
 
 ```ini
-[commit]
-	gpgsign = true
-[gpg]
-	format = ssh
-[user]
-	signingKey = <SSH Key UID
 [gpg "ssh"]
-	program = path\to\sshsign.exe
+    program = path/to/ssh-sign
+```
+
+### Repositories
+
+Next, configure a Git repository to sign your commits using the SSH key from the Keeper Vault.
+
+```shell
+git config gpg.format ssh
+git config user.signingkey SSH-Key-UID
+```
+
+Note that the executable expects the Git signing key to be the UID of the SSH key in the Keeper Vault.
+
+The resulting Git configuration should look something like this:
+
+```ini
+[gpg]
+    format = ssh
+[user]
+    signingKey = SSH-Key-UID
+[gpg "ssh"]
+    program = path/to/ssh-sign
 ```
 
 ## Usage
 
-Git is now configured to automatically sign all commits, regardless of whether you use the terminal or an IDE interface to interact with git. It also removes the need to use the `-S` flag for commit signing. 
+Simply run `git commit` with the `-S` switch to sign a commit!
 
 You can confirm your commit has been signed with `git show --pretty=raw`.
 
+### Automatic signing
+
+To sign commits automatically for a repository, i.e., without the `-S` run:
+
+```shell
+git config commit.gpgsign true
+```
+
+## Troubleshooting
+
+Git will execute `path/to/ssh-sign -Y sign -Y sign -n git -f SSH-Key-UID some-input.txt`.
+It expects to write an output file with the same path as the input file with the extension `.sig`.
+Thus to test whether the signing operation will work after creating the configuration,
+run the aforementioned command on a file in a folder you can write to.
+
+Thus, assuming `some-input.txt` exists in the current directory
+then running the above will create a file named `some-input.txt.sig`
+that will contain a signature, e.g.:
+
+```PEM
+-----BEGIN SSH SIGNATURE-----
+U1NIU0lHAAAAAQAAAZcAAAAHc3NoLXJzYQAAAAMBAAEAAAGBAL9iBpy9EFG4T9c3
+...
+...
+...
+rIalDYl8KKK+DPrwiF4KCKoovNN2xXu04ljxLH9O3byUcA==
+-----END SSH SIGNATURE-----
+```
+
 ## Contributing
 
-This module uses the built-in golang tooling for building and testing. For example:
+This module uses the built-in Golang tooling for building and testing:
 
 ```shell
 # Run unit tests
 go test ./...
 
 # Build a local binary
-go build -o ssh-sign.exe ./cmd/ssh-sign/main.go
+go build -o ssh-sign ./cmd/ssh-sign/main.go
 ```
 
-You can submit issues and enhancement requests [here](https://github.com/Keeper-Security/git-ssh-sign/issues).
+For bugs, changes, etc., please submit an [issue](https://github.com/Keeper-Security/git-ssh-sign/issues/new)!
