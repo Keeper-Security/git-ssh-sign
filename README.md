@@ -1,8 +1,12 @@
-# Sign Git commits with SSH Keys
+# Git commit signing with SSH Keys in Keeper
 
-Signing your git commits is an important security measure that verifies authorship, and ensures the integrity of committed content. Using cryptographic signatures demonstrates a commitment to the authenticity and security of your contributions, building trust among collaborators and protecting the repository from potential tampering and malicious code.
+This integration enables Git to sign commits using an SSH key stored in Keeper.
 
-This integration allows developers to sign git commits with an SSH key stored in the Keeper Vault (via Keeper Secrets Manager) rather than using a key stored on disk.
+Signing Git commits is an important security measure that verifies authorship,
+and ensures the integrity of the changes.
+Just as importantly,
+signing commits shows a commitment to authenticity and security,
+helping to build trust in the community.
 
 ## Requirements
 
@@ -14,7 +18,7 @@ Development requires:
 Usage requires:
 
 - [Keeper Secrets Manager](https://docs.keeper.io/secrets-manager/secrets-manager/overview)
-  (KSM) [Enabled](https://docs.keeper.io/secrets-manager/secrets-manager/quick-start-guide)
+  (KSM) must be [enabled](https://docs.keeper.io/secrets-manager/secrets-manager/quick-start-guide)
 - A Secrets Manager Application with read-only access to an SSH key
 
 ## KSM Set up
