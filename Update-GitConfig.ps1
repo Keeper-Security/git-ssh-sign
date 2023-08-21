@@ -6,8 +6,9 @@ param (
     # Keeper Secrets Manager One-time Access Token"
     [Parameter(Mandatory)][string]$AccessToken,
     [string]$ConfigurationDirectory = "${env:USERPROFILE}\.config\keeper",
-    [string]$Ksm = (Get-Command 'ksm' | Select-Object -ExpandProperty Source),
-    [string]$Go = (Get-Command 'go' | Select-Object -ExpandProperty Source)
+    [string]$Git = (Get-Command 'git' | Select-Object -ExpandProperty Source),
+    [string]$Go = (Get-Command 'go' | Select-Object -ExpandProperty Source),
+    [string]$Ksm = (Get-Command 'ksm' | Select-Object -ExpandProperty Source)
 )
 #region Initialize KSM configuration
 & $Ksm init default --plain $AccessToken | Set-Variable ConfigJson
@@ -22,5 +23,5 @@ foreach ($Command in (Get-ChildItem -Path .\cmd)) {
 }
 #endregion
 #region Configure Git to use ssh-sign.exe
-git config --global gpg.ssh.program "$(Get-Item 'ssh-sign.exe')"
+& $Git config --global gpg.ssh.program "$(Get-Item 'ssh-sign.exe')"
 #endregion

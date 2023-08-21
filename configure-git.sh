@@ -1,15 +1,18 @@
 #!/bin/bash
+umask 077
 
-test -n "$1" -a $# -eq 1 || {
-    echo "Must supply the Keeper Secrets Manager Application Access Token as the first and only argument."
-    exit 1
-}
+config_dir="${HOME}/.config/keeper"
 token=$1
 declare -A commands=(
     ["git"]="Git"
     ["go"]="Go"
     ["ksm"]="Keeper Secrets Manager CLI"
 )
+
+test -n "$1" -a $# -eq 1 || {
+    echo "Must supply the Keeper Secrets Manager Application Access Token as the first and only argument."
+    exit 1
+}
 for command in "${!commands[@]}"; do
     path=$(command -v "$command")
     test -n "$path" || {
@@ -18,8 +21,6 @@ for command in "${!commands[@]}"; do
     }
     eval "$command=$path"
 done
-config_dir="${HOME}/.config/keeper"
-umask 077
 $ksm init default --plain $token >| ssh-sign.json
 if test $? -eq 0
 then
