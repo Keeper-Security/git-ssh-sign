@@ -1,6 +1,6 @@
 # Git commit signing with SSH Keys in Keeper
 
-This integration enables Git to sign commits using an SSH key stored in Keeper.
+Sign Git commits using an SSH key stored in Keeper.
 
 Signing Git commits is an important security measure that verifies authorship,
 and ensures the integrity of the changes.
@@ -18,7 +18,7 @@ Development requires:
 Usage requires:
 
 - [Keeper Secrets Manager](https://docs.keeper.io/secrets-manager/secrets-manager/overview)
-  (KSM) must be [enabled](https://docs.keeper.io/secrets-manager/secrets-manager/quick-start-guide)
+  (KSM) [enabled](https://docs.keeper.io/secrets-manager/secrets-manager/quick-start-guide)
 - A Secrets Manager Application with read-only access to an SSH key
 
 ## KSM Set up
@@ -27,8 +27,7 @@ The integration expects a KSM Application Configuration file at either
 `.config/keeper/ssh-sign.json` or
 `ssh-sign.json`
 relative to the user's home directory.
-
-❗The KSM Application must have access to a Shared Folder that contains the SSH key.
+It must have access to a Shared Folder that contains the SSH key.
 
 ### CLI-based Configuration
 
@@ -67,12 +66,16 @@ $Config = if (ksm init default --plain $TOKEN) {
 }
 ```
 
-Refer to the KSM [documentation](https://docs.keeper.io/secrets-manager/secrets-manager/about/one-time-token)
-for help getting a One-time Access Token.
+##### Notes
+
+- The executable is standalone and can exist anywhere that Git can access.
+
+- The KSM documentation details the process of getting a
+  [One-time Access Token](https://docs.keeper.io/secrets-manager/secrets-manager/about/one-time-token).
 
 ### UI-based Configuration
 
-The KSM [configuration](https://docs.keeper.io/secrets-manager/secrets-manager/about/secrets-manager-configuration)
+The [Secrets Manager Configuration](https://docs.keeper.io/secrets-manager/secrets-manager/about/secrets-manager-configuration)
 page walks through creating a KSM Application Configuration via the UI.
 
 ### Git Configuration
@@ -117,12 +120,11 @@ The resulting Git configuration should look something like this:
 ## Usage
 
 Simply run `git commit` with the `-S` switch to sign a commit!
-
 You can confirm your commit has been signed with `git show --pretty=raw`.
 
 ### Automatic signing
 
-To sign commits automatically for a repository, i.e., without the `-S` run:
+To sign commits automatically, i.e., without the `-S` run:
 
 ```shell
 git config commit.gpgsign true
@@ -132,11 +134,11 @@ git config commit.gpgsign true
 
 Git will execute `path/to/ssh-sign -Y sign -Y sign -n git -f SSH-Key-UID some-input.txt`.
 It expects to write an output file with the same path as the input file with the extension `.sig`.
-Thus to test whether the signing operation will work after creating the configuration,
+So to test whether the signing operation will work after creating the configuration,
 run the aforementioned command on a file in a folder you can write to.
 
-Thus, assuming `some-input.txt` exists in the current directory
-then running the above will create a file named `some-input.txt.sig`
+As an example, assuming `some-input.txt` exists in the current directory
+then running the above command exactly will create a file named `some-input.txt.sig`
 that will contain a signature, e.g.:
 
 ```PEM
