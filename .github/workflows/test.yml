@@ -18,5 +18,8 @@ jobs:
         with:
           go-version-file: "go.mod"
 
+      - name: Test Build
+        run: go build -v -o ssh-sign ./cmd/ssh-sign/main.go
+
       - name: Test
         run: go test -v ./...
