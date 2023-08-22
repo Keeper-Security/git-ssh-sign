@@ -38,10 +38,10 @@ func TestMain(m *testing.M) {
 
 func TestBuildConfigOptions(t *testing.T) {
 	configOptions := buildConfigOptions(testHomeDir)
-	if configOptions.ConfigFile != filepath.Join(testHomeDir, ".keeper", "ssh", "config.json") {
+	if configOptions.ConfigFile != filepath.Join(testHomeDir, ".config", "keeper", "ssh-sign.json") {
 		t.Errorf("ConfigFile not built correctly")
 	}
-	if configOptions.ConfigFileBackup != filepath.Join(testHomeDir, ".keeper", "config.json") {
+	if configOptions.ConfigFileBackup != filepath.Join(testHomeDir, "ssh-sign.json") {
 		t.Errorf("ConfigFileBackup not built correctly")
 	}
 }
