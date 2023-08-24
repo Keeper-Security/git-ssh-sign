@@ -33,6 +33,10 @@ func main() {
 	*/
 
 	args := os.Args
+	if len(args) == 1 {
+		fmt.Println("This program is not intended to be run directly. It is called by git when signing commits.")
+		os.Exit(1)
+	}
 	commitToSign := args[len(args)-1]
 	sshUID := args[len(args)-2]
 
