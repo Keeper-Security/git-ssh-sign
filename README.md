@@ -1,3 +1,8 @@
+![GitHub](https://img.shields.io/github/license/Keeper-Security/git-ssh-sign)
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/Keeper-Security/git-ssh-sign/test.yml)
+![GitHub release (with filter)](https://img.shields.io/github/v/release/Keeper-Security/git-ssh-sign)
+
+
 # Git commit signing with SSH Keys in Keeper
 
 Sign Git commits using an SSH key stored in Keeper.
