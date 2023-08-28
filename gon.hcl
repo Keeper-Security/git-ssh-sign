@@ -9,5 +9,5 @@ apple_id {
 }
 
 sign {
-  application_identity = "$@env:AC_APPID"
+  application_identity = "@env:AC_APPID"
 }
