@@ -25,7 +25,7 @@ jobs:
 
       - name: Install gon
         run: |
-          go get -u github.com/mitchellh/gox
+          go get -u github.com/mitchellh/gon
           go build -o /gon/gon
           echo "$(pwd)/gon/ >> $GITHUB_PATH"
           
