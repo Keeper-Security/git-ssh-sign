@@ -24,10 +24,12 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Install gon
-        uses: jaxxstorm/action-install-gh-release@v1.10.0
-        with:
-          repo: mitchellh/gon
-          extension: "\\.dmg"
+        run: |
+          gh --repo mitchellh/gon release download --pattern "gon_macos.dmg" --dir /tmp
+          sudo hdiutil attach /tmp/gon_macos.dmg
+          sudo mkdir -p $HOME/.local/bin
+          sudo cp /Volumes/gon/gon $HOME/.local/bin/gon
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Import GPG key
         id: import_gpg
