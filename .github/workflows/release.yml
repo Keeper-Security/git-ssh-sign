@@ -13,10 +13,6 @@ jobs:
     runs-on: macos-latest
     environment: release
     steps:
-      - name: Exit if tag not on main branch
-        if: endsWith(github.ref, 'main') == false
-        run: exit 1
-
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -32,7 +28,7 @@ jobs:
           go get -u github.com/mitchellh/gon
           go build -o /gon/gon
           echo "$(pwd)/gon/ >> $GITHUB_PATH"
-          
+
       - name: Import GPG key
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v4
