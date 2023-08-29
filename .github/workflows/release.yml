@@ -24,6 +24,8 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Install gon
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh --repo mitchellh/gon release download --pattern "gon_macos.dmg" --dir /tmp
           sudo hdiutil attach /tmp/gon_macos.dmg
