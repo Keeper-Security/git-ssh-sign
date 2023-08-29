@@ -24,10 +24,10 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Install gon
-        run: |
-          go get -u github.com/mitchellh/gon
-          go build -o /gon/gon
-          echo "$(pwd)/gon/ >> $GITHUB_PATH"
+        uses: jaxxstorm/action-install-gh-release@v1.10.0
+        with:
+          repo: mitchellh/gon
+          extension: "\\.dmg"
 
       - name: Import GPG key
         id: import_gpg
