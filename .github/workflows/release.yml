@@ -10,9 +10,13 @@ permissions:
 
 jobs:
   goreleaser:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     environment: release
     steps:
+      - name: Exit if tag not on main branch
+        if: endsWith(github.ref, 'main') == false
+        run: exit 1
+
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -22,6 +26,12 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
+
+      - name: Install gon
+        run: |
+          go get -u github.com/mitchellh/gon
+          go build -o /gon/gon
+          echo "$(pwd)/gon/ >> $GITHUB_PATH"
           
       - name: Import GPG key
         id: import_gpg
