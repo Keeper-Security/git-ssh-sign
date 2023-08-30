@@ -50,4 +50,4 @@ signs:
     cmd: gon
     args:
       - gon.hcl
-    artifacts: all
+    artifacts: binary
