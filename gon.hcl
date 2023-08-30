@@ -1,6 +1,4 @@
-# The path follows a pattern
-# ./dist/BUILD-ID_TARGET/BINARY-NAME
-source = ["./dist/git-ssh-sign-macos/git-ssh-sign"]
+source = ["dist/git-ssh-sign-macos_darwin_arm64/git-ssh-sign", "dist/git-ssh-sign-macos_darwin_arm64/git-ssh-sign"]
 bundle_id = "github.com/Keeper-Security/git-ssh-sign/"
 
 apple_id {
