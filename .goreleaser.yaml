@@ -1,6 +1,5 @@
 builds:
   - binary: git-ssh-sign
-    id: git-ssh-sign
     main: ./cmd/ssh-sign
     goos:
       - linux
@@ -13,7 +12,7 @@ builds:
 
   # Separated build for the MacOS binary for notarization
   - binary: git-ssh-sign
-    id: git-ssh-sign-macos
+    id: "git-ssh-sign-macos"
     main: ./cmd/ssh-sign
     goos:
       - darwin
