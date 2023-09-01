@@ -49,4 +49,5 @@ signs:
     cmd: gon
     args:
       - gon.hcl
-    artifacts: binary
+    artifacts: all
+    output: true
