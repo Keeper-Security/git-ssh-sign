@@ -61,7 +61,7 @@ jobs:
         run: |
           binary="${BINARY}-${{ github.ref_name }}_darwin_amd64";
 
-          codesign --sign "${{ secrets.APP_SIGN_IDENTITY }}" --force \
+          codesign --sign 657913114CB74106EA85652A82D8E0DE3F87788B --force \
             --options runtime --timestamp --deep "${binary}";
 
           zip "${binary}.zip" "${binary}";
