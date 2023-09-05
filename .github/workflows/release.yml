@@ -90,10 +90,6 @@ jobs:
             --target "${{ github.ref }}";
 
           gh release upload "${{ github.ref_name }}" \
-            --file checksums.txt \
-            --repo "${{ github.repository }}";
-
-          gh release upload "${{ github.ref_name }}" \
             --file "${BINARY}-${{ github.ref_name }}_darwin_amd64.zip \
             --repo "${{ github.repository }}";
 
@@ -105,4 +101,8 @@ jobs:
                 --file "${binary}" \
                 --repo "${{ github.repository }}";
             done;
-          done
+          done;
+
+          gh release upload "${{ github.ref_name }}" \
+            --file checksums.txt \
+            --repo "${{ github.repository }}"
