@@ -60,8 +60,9 @@ jobs:
       - name: Sign
         run: |
           binary="${BINARY}-${{ github.ref_name }}_darwin_amd64";
-          codesign -s "${{ secrets.APP_SIGN_IDENTITY }}" "${binary}" \
-            --options runtime --timestamp --force --deep;
+
+          codesign --sign "${{ secrets.APP_SIGN_IDENTITY }}" --force \
+            --options runtime --timestamp --deep "${binary}";
 
           zip "${binary}.zip" "${binary}";
 
