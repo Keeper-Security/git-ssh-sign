@@ -66,7 +66,8 @@ jobs:
           zip "${binary}.zip" "${binary}";
 
           xcrun notarytool submit "${BINARY}-${{ github.ref_name }}_darwin_amd64.zip" \
-            --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' --wait
+            --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
+            --team-id 234QNB7GCA --wait
 
       - name: Release
         env:
