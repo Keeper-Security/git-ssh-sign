@@ -51,7 +51,7 @@ jobs:
               go build -v -o "${binary}" ./cmd/ssh-sign;
             done;
           done;
-          sha256sum "${binary_prefix}*" >| "${CHECKSUMS}"
+          shasum -a 256 "${binary_prefix}*" >| "${CHECKSUMS}"
 
       - name: Test
         run: |
