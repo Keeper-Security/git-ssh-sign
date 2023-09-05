@@ -59,9 +59,9 @@ jobs:
 
       - name: Notarize the MacOS binary
         run: |
-          xcrun notarytool submit --wait \
-            --provider "${{ secrets.APP_SIGN_INSTALLER }}" \
-            --file "${BINARY}-${{ github.ref_name }}_darwin_amd64"
+          xcrun notarytool submit "${BINARY}-${{ github.ref_name }}_darwin_amd64" \
+            --provider '${{ secrets.APP_SIGN_INSTALLER }}' \
+            --wait
 
       - name: Release
         env:
