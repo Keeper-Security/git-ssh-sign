@@ -1,36 +1,30 @@
-name: goreleaser
+name: release
 
 on:
   push:
     tags:
       - "v*.*.*"
-      - "v*.*.*-test-release"
+      - "v*.*-test"
 
 permissions:
   contents: write
 
 jobs:
-  goreleaser:
+  release:
     runs-on: macos-latest
     environment: release
+    env:
+      ARCHES: amd64 arm64
+      BINARY: git-ssh-sign
+      CHECKSUMS: checksums.txt
+      OSES: darwin linux windows
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Import Apple Code-signing certificate
+        id: import_codesign_cert
+        uses: apple-actions/import-codesign-certs@v2
         with:
-          fetch-depth: 0
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version-file: "go.mod"
-
-      - name: Install gon
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh --repo mitchellh/gon release download --pattern "gon_macos.zip" --dir /tmp
-          sudo unzip /tmp/gon_macos.zip -d /usr/local/bin
-          sudo chmod +x /usr/local/bin/gon
+          p12-file-base64: ${{ secrets.CODESIGN_CERT_P12 }}
+          p12-password: ${{ secrets.CODESIGN_CERT_P12_PWD }}
 
       - name: Import GPG key
         id: import_gpg
@@ -40,22 +34,63 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Import Apple Code-signing certificate
-        id: import_codesign_cert
-        uses: apple-actions/import-codesign-certs@v2
-        with:
-          p12-file-base64: ${{ secrets.CODESIGN_CERT_P12 }}
-          p12-password: ${{ secrets.CODESIGN_CERT_P12_PWD }}
+      - uses: actions/checkout@v3
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v4
+      - name: Set up Go
+        uses: actions/setup-go@v4
         with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean
+          go-version-file: "go.mod"
+
+      - name: Build
+        run: |
+          binary_prefix="${BINARY}-{{ github.ref_name }}"
+          for arch in $ARCHES; do
+            for os in $OSES; do
+              binary="${binary_prefix}_${os}_${arch}"
+              test "$os" -eq "windows" && binary="${binary}.exe"
+              go build -v -o "${binary}" ./cmd/ssh-sign
+            done
+          done
+          sha256sum "${binary_prefix}*" >| "${CHECKSUMS}"
+
+      - name: Test
+        run: |
+          go test -v ./...
+
+      - name: Notarize the MacOS binary
+        run: |
+          xcrun notarytool submit --wait \
+            --provider "{{ secrets.APP_SIGN_INSTALLER }}" \
+            --file "${BINARY}-{{ github.ref_name }}_darwin_amd64"
+
+      - name: Release
         env:
-          AC_USERNAME: ${{ secrets.AC_USERNAME }}
-          AC_PASSWORD:  ${{ secrets.AC_PASSWORD }}
-          AC_APPID: ${{ secrets.APP_SIGN_IDENTITY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+        run: |
+          gpg --batch --yes --detach-sign --armor \
+            --local-user "${GPG_FINGERPRINT}" \
+            --passphrase "${GPG_PASSPHRASE}" \
+            --output "${CHECKSUMS}.asc" \
+            "${CHECKSUMS}"
+
+            gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes-file CHANGELOG.md \
+            --draft=false \
+            --prerelease=false \
+            --repo "${{ github.repository }}" \
+            --target "${{ github.ref }}"
+
+          gh release upload "${{ github.ref_name }}" \
+            --file checksums.txt \
+            --repo "${{ github.repository }}"
+
+          for arch in $ARCHES; do
+            for os in $OSES; do
+              binary="${BINARY}-{{ github.ref_name }}_${os}_${arch}"
+              test "$os" -eq "windows" && binary="${binary}.exe"
+              gh release upload "${{ github.ref_name }}" \
+                --file "${binary}" \
+                --repo "${{ github.repository }}"
+            done
+          done
