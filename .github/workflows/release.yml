@@ -61,7 +61,7 @@ jobs:
         run: |
           binary="${BINARY}-${{ github.ref_name }}_darwin_amd64";
 
-          codesign --sign 657913114CB74106EA85652A82D8E0DE3F87788B --force \
+          codesign --sign '${{ secrets.APP_SIGN_INSTALLER }}' --force \
             --options runtime --timestamp --deep "${binary}";
 
           zip "${binary}.zip" "${binary}";
@@ -91,6 +91,10 @@ jobs:
 
           gh release upload "${{ github.ref_name }}" \
             --file checksums.txt \
+            --repo "${{ github.repository }}";
+
+          gh release upload "${{ github.ref_name }}" \
+            --file "${BINARY}-${{ github.ref_name }}_darwin_amd64.zip \
             --repo "${{ github.repository }}";
 
           for arch in $ARCHES; do
