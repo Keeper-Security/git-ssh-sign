@@ -47,7 +47,7 @@ jobs:
           for arch in $ARCHES; do
             for os in $OSES; do
               binary="${binary_prefix}_${os}_${arch}";
-              test "$os" -eq "windows" && binary="${binary}.exe";
+              test "${os}" = 'windows' && binary="${binary}.exe";
               go build -v -o "${binary}" ./cmd/ssh-sign;
             done;
           done;
