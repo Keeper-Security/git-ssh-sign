@@ -57,10 +57,17 @@ jobs:
         run: |
           go test -v ./...
 
-      - name: Notarize the MacOS binary
+      - name: Sign
         run: |
-          xcrun notarytool submit "${BINARY}-${{ github.ref_name }}_darwin_amd64" \
-            --apple-id '${{ secrets.AC_USERNAME }}' --password '@keychain:AC_PASSWORD' \
+          binary="${BINARY}-${{ github.ref_name }}_darwin_amd64";
+          codesign -s "${{ secrets.APP_SIGN_IDENTITY }}" "${binary}" \
+            --options runtime --timestamp --force --deep;
+
+          zip "${binary}.zip" "${binary}";
+
+          xcrun notarytool submit "${BINARY}-${{ github.ref_name }}_darwin_amd64.zip" \
+            --apple-id ${{ secrets.AC_USERNAME }} --password '@keychain:AC_PASSWORD' \
+            --provider '${{ secrets.APP_SIGN_INSTALLER }}' \
             --wait
 
       - name: Release
