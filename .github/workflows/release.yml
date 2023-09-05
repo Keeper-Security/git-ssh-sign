@@ -43,15 +43,15 @@ jobs:
 
       - name: Build
         run: |
-          binary_prefix="${BINARY}-${{ github.ref_name }}";
+          name="${BINARY}-${{ github.ref_name }}";
           for arch in $ARCHES; do
             for os in $OSES; do
-              binary="${binary_prefix}_${os}_${arch}";
+              binary="${name}_${os}_${arch}";
               test "${os}" = 'windows' && binary="${binary}.exe";
               go build -v -o "${binary}" ./cmd/ssh-sign;
             done;
           done;
-          shasum -a 256 "${binary_prefix}*" >| "${CHECKSUMS}"
+          shasum -a 256 ${name}_* >| "${CHECKSUMS}"
 
       - name: Test
         run: |
