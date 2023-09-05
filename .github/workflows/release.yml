@@ -61,14 +61,14 @@ jobs:
         run: |
           binary="${BINARY}-${{ github.ref_name }}_darwin_amd64";
 
-          codesign --sign '${{ secrets.APP_SIGN_INSTALLER }}' --force \
+          codesign --sign 'Developer ID Application: Callpod Inc. (234QNB7GCA)' \
             --options runtime --timestamp --deep "${binary}";
 
           zip "${binary}.zip" "${binary}";
 
           xcrun notarytool submit "${BINARY}-${{ github.ref_name }}_darwin_amd64.zip" \
-            --apple-id ${{ secrets.AC_USERNAME }} --password '@keychain:AC_PASSWORD' \
-            --provider '${{ secrets.APP_SIGN_INSTALLER }}' \
+            --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
+            --provider 'Developer ID Application: Callpod Inc. (234QNB7GCA)' \
             --wait
 
       - name: Release
