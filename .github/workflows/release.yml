@@ -43,7 +43,7 @@ jobs:
 
       - name: Build
         run: |
-          binary_prefix="${BINARY}-{{ github.ref_name }}";
+          binary_prefix="${BINARY}-${{ github.ref_name }}";
           for arch in $ARCHES; do
             for os in $OSES; do
               binary="${binary_prefix}_${os}_${arch}";
@@ -60,8 +60,8 @@ jobs:
       - name: Notarize the MacOS binary
         run: |
           xcrun notarytool submit --wait \
-            --provider "{{ secrets.APP_SIGN_INSTALLER }}" \
-            --file "${BINARY}-{{ github.ref_name }}_darwin_amd64"
+            --provider "${{ secrets.APP_SIGN_INSTALLER }}" \
+            --file "${BINARY}-${{ github.ref_name }}_darwin_amd64"
 
       - name: Release
         env:
@@ -87,7 +87,7 @@ jobs:
 
           for arch in $ARCHES; do
             for os in $OSES; do
-              binary="${BINARY}-{{ github.ref_name }}_${os}_${arch}";
+              binary="${BINARY}-${{ github.ref_name }}_${os}_${arch}";
               test "$os" -eq "windows" && binary="${binary}.exe";
               gh release upload "${{ github.ref_name }}" \
                 --file "${binary}" \
