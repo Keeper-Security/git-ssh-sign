@@ -63,11 +63,12 @@ jobs:
           for arch in $ARCHES; do
             bin="${CMD}-${{ github.ref_name }}_darwin_${arch}";
             codesign --sign 234QNB7GCA --options runtime --timestamp --deep "${bin}";
-            zip "${bin}.zip" "${bin}";
+            zip="${bin}.zip";
+            zip "${zip}" "${bin}";
             rm -f "${bin}";
-            #xcrun notarytool submit "${CMD}-${{ github.ref_name }}_darwin_${arch}.zip" \
-            #  --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
-            #  --team-id 234QNB7GCA --wait;
+            xcrun altool --notarize-app --primary-bindle-id com.keepersecurity.git-ssh-sign \
+              --username '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
+              --file "${zip}";
           done
 
       - name: Create release
