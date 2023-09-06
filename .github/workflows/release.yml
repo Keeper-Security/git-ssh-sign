@@ -15,8 +15,7 @@ jobs:
     environment: release
     env:
       ARCHES: amd64 arm64
-      BINARY: git-ssh-sign
-      CHECKSUMS: checksums.txt
+      CMD: git-ssh-sign
       OSES: darwin linux windows
     steps:
       - name: Import Apple Code-signing certificate
@@ -41,44 +40,42 @@ jobs:
         with:
           go-version-file: "go.mod"
 
+      - name: Test
+        run: go test -v ./...
+
       - name: Build
         run: |
-          name="${BINARY}-${{ github.ref_name }}";
+          name="${CMD}-${{ github.ref_name }}";
           for arch in $ARCHES; do
             for os in $OSES; do
-              binary="${name}_${os}_${arch}";
-              test "${os}" = 'windows' && binary="${binary}.exe";
-              go build -v -o "${binary}" ./cmd/ssh-sign;
+              bin="${name}_${os}_${arch}";
+              test "${os}" = 'windows' && bin="${bin}.exe";
+              go build -v -o "${bin}" ./cmd/ssh-sign;
             done;
           done;
-          shasum -a 256 ${name}_* >| "${CHECKSUMS}"
-
-      - name: Test
-        run: |
-          go test -v ./...
+          sums="${name}_checksums.txt";
+          shasum -a 256 ${name}_* >| $sums;
+          gpg --batch --yes --detach-sign --armor \
+            --local-user "${GPG_FINGERPRINT}" \
+            --passphrase "${GPG_PASSPHRASE}" \
+            --output "${sums}.asc" $sums
 
       - name: Sign
         run: |
-          binary="${BINARY}-${{ github.ref_name }}_darwin_amd64";
+          bin="${CMD}-${{ github.ref_name }}_darwin_amd64";
 
-          codesign --sign 234QNB7GCA --options runtime --timestamp --deep "${binary}";
+          codesign --sign 234QNB7GCA --options runtime --timestamp --deep "${bin}";
 
-          zip "${binary}.zip" "${binary}";
+          zip "${bin}.zip" "${bin}"; rm "${bin}";
 
-          xcrun notarytool submit "${BINARY}-${{ github.ref_name }}_darwin_amd64.zip" \
-            --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
-            --team-id 234QNB7GCA --wait
+          #xcrun notarytool submit "${CMD}-${{ github.ref_name }}_darwin_amd64.zip" \
+          #  --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
+          #  --team-id 234QNB7GCA --wait
 
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gpg --batch --yes --detach-sign --armor \
-            --local-user "${GPG_FINGERPRINT}" \
-            --passphrase "${GPG_PASSPHRASE}" \
-            --output "${CHECKSUMS}.asc" \
-            "${CHECKSUMS}";
-
           gh release create "${{ github.ref_name }}" \
             --title "${{ github.ref_name }}" \
             --notes-file CHANGELOG.md \
@@ -87,16 +84,15 @@ jobs:
             --repo "${{ github.repository }}" \
             --target "${{ github.ref }}";
 
-          gh release upload "${{ github.ref_name }}" \
-            --file "${BINARY}-${{ github.ref_name }}_darwin_amd64.zip \
-            --repo "${{ github.repository }}";
-
           for arch in $ARCHES; do
             for os in $OSES; do
-              binary="${BINARY}-${{ github.ref_name }}_${os}_${arch}";
-              test "$os" -eq "windows" && binary="${binary}.exe";
+              bin="${CMD}-${{ github.ref_name }}_${os}_${arch}";
+              case "${os}" in
+              'windows') bin="${bin}.exe" ;;
+              'darwin') bin="${bin}.zip" ;;
+              esac;
               gh release upload "${{ github.ref_name }}" \
-                --file "${binary}" \
+                --file "${bin}" \
                 --repo "${{ github.repository }}";
             done;
           done;
