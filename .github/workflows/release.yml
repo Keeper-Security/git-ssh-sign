@@ -11,12 +11,12 @@ permissions:
 
 jobs:
   release:
-    runs-on: macos-latest
-    environment: release
     env:
       ARCHES: amd64 arm64
       CMD: git-ssh-sign
       OSES: darwin linux windows
+    environment: release
+    runs-on: macos-latest
     steps:
       - name: Import Apple Code-signing certificate
         id: import_codesign_cert
@@ -43,7 +43,7 @@ jobs:
       - name: Test
         run: go test -v ./...
 
-      - name: Build
+      - name: Build binaries
         run: |
           name="${CMD}-${{ github.ref_name }}";
           for arch in $ARCHES; do
@@ -52,15 +52,18 @@ jobs:
               test "${os}" = 'windows' && bin="${bin}.exe";
               go build -v -o "${bin}" ./cmd/ssh-sign;
             done;
-          done;
+          done
+
+      - name: Create checksums
+        run: |
           sums="${name}_checksums.txt";
           shasum -a 256 ${name}_* >| $sums;
           gpg --batch --yes --detach-sign --armor \
-            --local-user "${GPG_FINGERPRINT}" \
-            --passphrase "${GPG_PASSPHRASE}" \
+            --local-user "${{ secrets.GPG_FINGERPRINT }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
             --output "${sums}.asc" $sums
 
-      - name: Sign
+      - name: Sign MacOS binary
         run: |
           bin="${CMD}-${{ github.ref_name }}_darwin_amd64";
 
@@ -72,7 +75,7 @@ jobs:
           #  --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
           #  --team-id 234QNB7GCA --wait
 
-      - name: Release
+      - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -82,8 +85,23 @@ jobs:
             --draft=false \
             --prerelease=false \
             --repo "${{ github.repository }}" \
-            --target "${{ github.ref }}";
+            --target "${{ github.ref }}"
 
+      - name: Upload checksums
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            --file "${name}_checksums.txt" \
+            --repo "${{ github.repository }}"
+          gh release upload "${{ github.ref_name }}" \
+            --file "${name}_checksums.txt.asc" \
+            --repo "${{ github.repository }}"
+
+      - name: Upload artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           for arch in $ARCHES; do
             for os in $OSES; do
               bin="${CMD}-${{ github.ref_name }}_${os}_${arch}";
@@ -95,8 +113,4 @@ jobs:
                 --file "${bin}" \
                 --repo "${{ github.repository }}";
             done;
-          done;
-
-          gh release upload "${{ github.ref_name }}" \
-            --file checksums.txt \
-            --repo "${{ github.repository }}"
+          done
