@@ -52,23 +52,23 @@ jobs:
         run: |
           name="${CMD}-${{ github.ref_name }}";
           sums="${name}_checksums.txt";
-          shasum -a 256 ${name}_* >| $sums;
+          shasum -a 256 ${name}_* | grep -v '_darwin_' >| $sums;
           gpg --batch --yes --detach-sign --armor \
             --local-user "${{ secrets.GPG_FINGERPRINT }}" \
             --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
             --output "${sums}.asc" $sums
 
-      - name: Sign MacOS binary
+      - name: Sign MacOS binaries
         run: |
-          bin="${CMD}-${{ github.ref_name }}_darwin_amd64";
-
-          codesign --sign 234QNB7GCA --options runtime --timestamp --deep "${bin}";
-
-          zip "${bin}.zip" "${bin}"; rm "${bin}";
-
-          #xcrun notarytool submit "${CMD}-${{ github.ref_name }}_darwin_amd64.zip" \
-          #  --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
-          #  --team-id 234QNB7GCA --wait
+          for arch in $ARCHES; do
+            bin="${CMD}-${{ github.ref_name }}_darwin_${arch}";
+            codesign --sign 234QNB7GCA --options runtime --timestamp --deep "${bin}";
+            zip "${bin}.zip" "${bin}";
+            rm -f "${bin}";
+            #xcrun notarytool submit "${CMD}-${{ github.ref_name }}_darwin_${arch}.zip" \
+            #  --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
+            #  --team-id 234QNB7GCA --wait;
+          done
 
       - name: Create release
         env:
@@ -85,7 +85,7 @@ jobs:
           name="${CMD}-${{ github.ref_name }}_checksums.txt";
           gh release upload "${{ github.ref_name }}" \
             --repo "${{ github.repository }}" \
-            "${name}" "${name}.asc" --clobber
+            "${name}" "${name}.asc"
 
       - name: Upload artifacts
         env:
@@ -93,4 +93,4 @@ jobs:
         run: |
           gh release upload "${{ github.ref_name }}" \
             --repo "${{ github.repository }}" \
-            "${CMD}-${{ github.ref_name }}"_* --clobber
+            "${CMD}-${{ github.ref_name }}"_*
