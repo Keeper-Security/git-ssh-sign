@@ -43,7 +43,7 @@ jobs:
       - name: Test
         run: go test -v ./...
 
-      - name: Build binaries
+      - name: Build
         run: |
           name="${CMD}-${{ github.ref_name }}";
           for arch in $ARCHES; do
@@ -52,10 +52,7 @@ jobs:
               test "${os}" = 'windows' && bin="${bin}.exe";
               go build -v -o "${bin}" ./cmd/ssh-sign;
             done;
-          done
-
-      - name: Create checksums
-        run: |
+          done;
           sums="${name}_checksums.txt";
           shasum -a 256 ${name}_* >| $sums;
           gpg --batch --yes --detach-sign --armor \
