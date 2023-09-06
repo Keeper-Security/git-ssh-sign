@@ -35,26 +35,28 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
 
-      - name: Test
+      - name: Run tests
         run: go test -v ./...
 
-      - name: Build
+      - name: Build binaries
         run: |
-          name="${CMD}-${{ github.ref_name }}";
           for arch in $ARCHES; do
             for os in $OSES; do
-              bin="${name}_${os}_${arch}";
+              bin="${CMD}-${{ github.ref_name }}_${os}_${arch}";
               test "${os}" = 'windows' && bin="${bin}.exe";
               go build -v -o "${bin}" ./cmd/ssh-sign;
             done;
           done;
+
+      - name: Create checksums
+        run: |
+          name="${CMD}-${{ github.ref_name }}";
           sums="${name}_checksums.txt";
-          shasum -a 256 ${name}_* >| $sums;
+          shasum -a 256 "${name}_*" >| $sums;
           gpg --batch --yes --detach-sign --armor \
             --local-user "${{ secrets.GPG_FINGERPRINT }}" \
             --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
