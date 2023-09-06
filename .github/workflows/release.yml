@@ -12,7 +12,7 @@ jobs:
   release:
     env:
       ARCHES: amd64 arm64
-      CMD: git-ssh-sign
+      COMMANDS: ssh-sign
       OSES: darwin linux windows
     environment: release
     runs-on: macos-latest
@@ -38,34 +38,38 @@ jobs:
         run: |
           for arch in $ARCHES; do
             for os in $OSES; do
-              bin="${CMD}-${{ github.ref_name }}_${os}_${arch}";
-              test "${os}" = 'windows' && bin="${bin}.exe";
-              GOOS=${os} GOARCH=${arch} go build -v -o "${bin}" ./cmd/ssh-sign;
+              for command in $COMMANDS; do
+                bin="git-${command}-${{ github.ref_name }}_${os}_${arch}";
+                test "${os}" = 'windows' && bin="${bin}.exe";
+                GOOS=${os} GOARCH=${arch} go build -v -o "${bin}" ./cmd/${command};
+              done;
             done;
           done;
 
-      - name: Sign MacOS binaries
+      - name: Sign and notarize MacOS binaries
         run: |
           for arch in $ARCHES; do
-            bin="${CMD}-${{ github.ref_name }}_darwin_${arch}";
-            codesign --sign 234QNB7GCA --options runtime --timestamp --deep "${bin}";
-            zip="${bin}.zip";
-            zip "${zip}" "${bin}";
-            rm -f "${bin}";
-            #xcrun notarytool submit "${zip}" \
-            #  --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
-            #  --team-id 234QNB7GCA --wait;
+            for command in $COMMANDS; do
+              bin="git-${command}-${{ github.ref_name }}_darwin_${arch}";
+              codesign --sign 234QNB7GCA --options runtime --timestamp --deep "${bin}";
+              zip="${bin}.zip";
+              zip "${zip}" "${bin}";
+              rm -f "${bin}";
+              #xcrun notarytool submit "${zip}" \
+              #  --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
+              #  --team-id 234QNB7GCA --wait;
+            done;
           done
 
       - name: Create checksums
+        run: shasum -a 256 *-${{ github.ref_name }}_*_*.*  >| checksums.txt
+
+      - name: Sign checksums
         run: |
-          name="${CMD}-${{ github.ref_name }}";
-          sums="${name}_checksums.txt";
-          shasum -a 256 ${name}_* >| $sums;
           gpg --batch --yes --detach-sign --armor \
             --local-user "${{ secrets.GPG_FINGERPRINT }}" \
             --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-            --output "${sums}.asc" $sums
+            --output checksums.txt.sig checksums.txt
 
       - name: Create release
         env:
@@ -81,4 +85,5 @@ jobs:
         run: |
           gh release upload "${{ github.ref_name }}" \
             --repo "${{ github.repository }}" \
-            "${CMD}-${{ github.ref_name }}"_*
+            *-${{ github.ref_name }}_*_*.* \
+            checksums.txt checksums.txt.sig
