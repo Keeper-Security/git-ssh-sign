@@ -52,9 +52,9 @@ jobs:
             zip="${bin}.zip";
             zip "${zip}" "${bin}";
             rm -f "${bin}";
-            xcrun notarytool submit "${zip}" \
-              --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
-              --team-id 234QNB7GCA --wait;
+            #xcrun notarytool submit "${zip}" \
+            #  --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
+            #  --team-id 234QNB7GCA --wait;
           done
 
       - name: Create checksums
