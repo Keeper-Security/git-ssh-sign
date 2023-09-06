@@ -48,16 +48,6 @@ jobs:
             done;
           done;
 
-      - name: Create checksums
-        run: |
-          name="${CMD}-${{ github.ref_name }}";
-          sums="${name}_checksums.txt";
-          shasum -a 256 ${name}_* | grep -v '_darwin_' >| $sums;
-          gpg --batch --yes --detach-sign --armor \
-            --local-user "${{ secrets.GPG_FINGERPRINT }}" \
-            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-            --output "${sums}.asc" $sums
-
       - name: Sign MacOS binaries
         run: |
           for arch in $ARCHES; do
@@ -70,6 +60,16 @@ jobs:
               --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
               --team-id 234QNB7GCA --wait;
           done
+
+      - name: Create checksums
+        run: |
+          name="${CMD}-${{ github.ref_name }}";
+          sums="${name}_checksums.txt";
+          shasum -a 256 ${name}_* >| $sums;
+          gpg --batch --yes --detach-sign --armor \
+            --local-user "${{ secrets.GPG_FINGERPRINT }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --output "${sums}.asc" $sums
 
       - name: Create release
         env:
