@@ -44,7 +44,7 @@ jobs:
             for os in $OSES; do
               bin="${CMD}-${{ github.ref_name }}_${os}_${arch}";
               test "${os}" = 'windows' && bin="${bin}.exe";
-              go build -v -o "${bin}" ./cmd/ssh-sign;
+              GOOS=${os} GOARCH=${arch} go build -v -o "${bin}" ./cmd/ssh-sign;
             done;
           done;
 
