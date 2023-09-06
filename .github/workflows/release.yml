@@ -57,8 +57,10 @@ jobs:
               zip "${zip}" "${bin}";
               rm -f "${bin}";
               xcrun notarytool submit "${zip}" \
-                --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
-                --team-id ${APPLE_IDENTITY} --wait;
+                --apple-id '@keychain:AC_USERNAME' \
+                --password '${{ secrets.APP_SPECIFIC_PASSWORD }}' \
+                --team-id ${APPLE_IDENTITY} \
+                --wait;
             done;
           done
 
