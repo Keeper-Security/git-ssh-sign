@@ -85,7 +85,7 @@ jobs:
           name="${CMD}-${{ github.ref_name }}_checksums.txt";
           gh release upload "${{ github.ref_name }}" \
             --repo "${{ github.repository }}" \
-            "${name}" "${name}.asc"
+            "${name}" "${name}.asc" --clobber
 
       - name: Upload artifacts
         env:
@@ -93,4 +93,4 @@ jobs:
         run: |
           gh release upload "${{ github.ref_name }}" \
             --repo "${{ github.repository }}" \
-            "${CMD}-${{ github.ref_name }}"_*
+            "${CMD}-${{ github.ref_name }}"_* --clobber
