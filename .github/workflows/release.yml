@@ -85,11 +85,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ github.ref_name }}" \
-            --file "${name}_checksums.txt" \
-            --repo "${{ github.repository }}"
-          gh release upload "${{ github.ref_name }}" \
-            --file "${name}_checksums.txt.asc" \
-            --repo "${{ github.repository }}"
+            --repo "${{ github.repository }}" \
+            "${name}_checksums.txt" "${name}_checksums.txt.asc"
 
       - name: Upload artifacts
         env:
@@ -103,7 +100,6 @@ jobs:
               'darwin') bin="${bin}.zip" ;;
               esac;
               gh release upload "${{ github.ref_name }}" \
-                --file "${bin}" \
-                --repo "${{ github.repository }}";
+                --repo "${{ github.repository }}" "${bin}"
             done;
           done
