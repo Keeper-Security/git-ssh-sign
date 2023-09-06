@@ -66,9 +66,9 @@ jobs:
             zip="${bin}.zip";
             zip "${zip}" "${bin}";
             rm -f "${bin}";
-            xcrun altool --notarize-app --primary-bindle-id com.keepersecurity.git-ssh-sign \
-              --username '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
-              --file "${zip}";
+            xcrun notarytool submit "${zip}" \
+              --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
+              --team-id 234QNB7GCA --wait;
           done
 
       - name: Create release
