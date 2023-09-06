@@ -11,6 +11,7 @@ permissions:
 jobs:
   release:
     env:
+      APPLE_IDENTITY: 234QNB7GCA
       ARCHES: amd64 arm64
       COMMANDS: ssh-sign
       OSES: darwin linux windows
@@ -51,13 +52,13 @@ jobs:
           for arch in $ARCHES; do
             for command in $COMMANDS; do
               bin="git-${command}-${{ github.ref_name }}_darwin_${arch}";
-              codesign --sign 234QNB7GCA --options runtime --timestamp --deep "${bin}";
+              codesign --sign ${APPLE_IDENTITY} --options runtime --timestamp --deep "${bin}";
               zip="${bin}.zip";
               zip "${zip}" "${bin}";
               rm -f "${bin}";
-              #xcrun notarytool submit "${zip}" \
-              #  --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
-              #  --team-id 234QNB7GCA --wait;
+              xcrun notarytool submit "${zip}" \
+                --apple-id '@keychain:AC_USERNAME' --password '@keychain:AC_PASSWORD' \
+                --team-id ${APPLE_IDENTITY} --wait;
             done;
           done
 
