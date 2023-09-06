@@ -62,7 +62,7 @@ jobs:
           done
 
       - name: Create checksums
-        run: shasum -a 256 *-${{ github.ref_name }}_*_*.*  >| checksums.txt
+        run: shasum -a 256 *-${{ github.ref_name }}_*_*  >| checksums.txt
 
       - name: Sign checksums
         run: |
@@ -85,5 +85,5 @@ jobs:
         run: |
           gh release upload "${{ github.ref_name }}" \
             --repo "${{ github.repository }}" \
-            *-${{ github.ref_name }}_*_*.* \
+            *-${{ github.ref_name }}_*_* \
             checksums.txt checksums.txt.sig
