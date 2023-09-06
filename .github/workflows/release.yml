@@ -78,15 +78,6 @@ jobs:
             --title "${{ github.ref_name }}" \
             --repo "${{ github.repository }}"
 
-      - name: Upload checksums
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          name="${CMD}-${{ github.ref_name }}_checksums.txt";
-          gh release upload "${{ github.ref_name }}" \
-            --repo "${{ github.repository }}" \
-            "${name}" "${name}.asc"
-
       - name: Upload artifacts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
