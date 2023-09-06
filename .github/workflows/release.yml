@@ -91,14 +91,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for arch in $ARCHES; do
-            for os in $OSES; do
-              bin="${CMD}-${{ github.ref_name }}_${os}_${arch}";
-              case "${os}" in
-              'windows') bin="${bin}.exe" ;;
-              'darwin') bin="${bin}.zip" ;;
-              esac;
-              gh release upload "${{ github.ref_name }}" \
-                --repo "${{ github.repository }}" "${bin}"
-            done;
-          done
+          gh release upload "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            "${CMD}-${{ github.ref_name }}"_*
