@@ -64,9 +64,10 @@ jobs:
                 --apple-id '@keychain:AC_USERNAME' \
                 --password '${{ secrets.APP_SPECIFIC_PASSWORD }}' \
                 --team-id ${APPLE_IDENTITY} \
-                --keychain codesign;
+                --keychain /Users/runner/Library/Keychains/codesign.keychain-db;
               xcrun notarytool submit "${zip}" \
-                -p my-profile --keychain codesign \
+                -p my-profile \
+                --keychain /Users/runner/Library/Keychains/codesign.keychain-db \
                 --wait --force;
             done;
           done
