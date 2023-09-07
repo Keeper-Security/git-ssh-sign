@@ -61,7 +61,7 @@ jobs:
               zip "${zip}" "${bin}";
               rm -f "${bin}";
               xcrun notarytool store-credentials my-profile \
-                --apple-id '@keychain:AC_USERNAME' \
+                --apple-id '${{ secrets.AC_USERNAME }}' \
                 --password '${{ secrets.APP_SPECIFIC_PASSWORD }}' \
                 --team-id ${APPLE_IDENTITY} \
                 --keychain /Users/runner/Library/Keychains/codesign.keychain-db;
