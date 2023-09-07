@@ -21,7 +21,7 @@ jobs:
       - uses: apple-actions/import-codesign-certs@v2
         with:
           create-keychain: true
-          keychain: codesign.keychain
+          keychain: codesign
           p12-file-base64: ${{ secrets.CODESIGN_CERT_P12 }}
           p12-password: ${{ secrets.CODESIGN_CERT_P12_PWD }}
 
@@ -64,9 +64,9 @@ jobs:
                 --apple-id '@keychain:AC_USERNAME' \
                 --password '${{ secrets.APP_SPECIFIC_PASSWORD }}' \
                 --team-id ${APPLE_IDENTITY} \
-                --keychain codesign.keychain;
+                --keychain codesign;
               xcrun notarytool submit "${zip}" \
-                -p my-profile --keychain codesign.keychain \
+                -p my-profile --keychain codesign \
                 --wait --force;
             done;
           done
