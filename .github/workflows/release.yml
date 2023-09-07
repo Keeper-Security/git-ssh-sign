@@ -60,15 +60,11 @@ jobs:
               zip="${bin}.zip";
               zip "${zip}" "${bin}";
               rm -f "${bin}";
-              xcrun notarytool store-credentials my-profile \
+              xcrun notarytool store-credentials kp \
                 --apple-id '${{ secrets.AC_USERNAME }}' \
-                --password '${{ secrets.APP_SPECIFIC_PASSWORD }}' \
                 --team-id ${APPLE_IDENTITY} \
-                --keychain /Users/runner/Library/Keychains/codesign.keychain-db;
-              xcrun notarytool submit "${zip}" \
-                -p my-profile \
-                --keychain /Users/runner/Library/Keychains/codesign.keychain-db \
-                --wait --force;
+                --password '${{ secrets.APP_SPECIFIC_PASSWORD }}';
+              xcrun notarytool submit "${zip}" --keychain-profile kp --wait;
             done;
           done
 
