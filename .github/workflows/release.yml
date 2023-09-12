@@ -55,13 +55,13 @@ jobs:
           for arch in $ARCHES; do
             for command in $COMMANDS; do
               bin="git-${command}-${{ github.ref_name }}_darwin_${arch}";
-              codesign --sign ${{ secrets.AC_APPID }} --options runtime --timestamp --deep "${bin}";
+              codesign --sign 234QNB7GCA --options runtime --timestamp --deep "${bin}";
               zip="${bin}.zip";
               zip "${zip}" "${bin}";
               rm -f "${bin}";
               xcrun notarytool submit "${zip}" \
-              --apple-id '${{ secrets.AC_USERNAME }}' \
-              --team-id '${{ secrets.AC_APPID }}' \
+              --apple-id 'ksserviceaccount@keepersecurity.com' \
+              --team-id 234QNB7GCA \
               --password '${{ secrets.APP_SPECIFIC_PASSWORD }}' \
               --wait;
             done;
