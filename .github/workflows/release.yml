@@ -45,10 +45,10 @@ jobs:
               for command in $COMMANDS; do
                 bin="git-${command}-${{ github.ref_name }}_${os}_${arch}";
                 test "${os}" = 'windows' && bin="${bin}.exe";
-                GOOS=${os} GOARCH=${arch} go build -v -o "${bin}" ./cmd/${command};
+                GOOS=$os GOARCH=$arch go build -v -o "${bin}" ./cmd/$command;
               done;
             done;
-          done;
+          done
 
       - name: Sign and notarize MacOS binaries
         run: |
