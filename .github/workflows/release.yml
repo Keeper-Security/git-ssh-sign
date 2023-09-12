@@ -55,7 +55,7 @@ jobs:
           for arch in $ARCHES; do
             for command in $COMMANDS; do
               bin="git-${command}-${{ github.ref_name }}_darwin_${arch}";
-              codesign --sign 85778X8X36 --options runtime --timestamp --deep "${bin}";
+              codesign --sign 85778X8X36 --options runtime --timestamp "${bin}";
               zip="${bin}.zip";
               zip "${zip}" "${bin}";
               rm -f "${bin}";
