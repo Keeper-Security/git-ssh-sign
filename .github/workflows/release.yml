@@ -61,7 +61,7 @@ jobs:
               rm -f "${bin}";
               xcrun notarytool submit "${zip}" \
               --apple-id '${{ secrets.AC_USERNAME }}' \
-              --team-id ${{ secrets.AC_APPID }} \
+              --team-id '${{ secrets.AC_APPID }}' \
               --password '${{ secrets.APP_SPECIFIC_PASSWORD }}' \
               --wait;
             done;
