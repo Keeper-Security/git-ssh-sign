@@ -1,4 +1,4 @@
-name: goreleaser
+name: release
 
 on:
   push:
@@ -9,45 +9,87 @@ permissions:
   contents: write
 
 jobs:
-  goreleaser:
-    runs-on: macos-latest
+  release:
+    env:
+      ARCHES: amd64 arm64
+      COMMANDS: ssh-sign
+      OSES: darwin linux windows
     environment: release
+    runs-on: macos-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: apple-actions/import-codesign-certs@v2
         with:
-          fetch-depth: 0
+          create-keychain: true
+          keychain: codesign
+          p12-file-base64: ${{ secrets.CODESIGN_CERT_P12 }}
+          p12-password: ${{ secrets.CODESIGN_CERT_P12_PWD }}
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version-file: "go.mod"
-
-      - name: Install gon
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh --repo mitchellh/gon release download --pattern "gon_macos.zip" --dir /tmp
-          sudo unzip /tmp/gon_macos.zip -d /usr/local/bin
-          sudo chmod +x /usr/local/bin/gon
-
-      - name: Import GPG key
-        id: import_gpg
-        uses: crazy-max/ghaction-import-gpg@v5
+      - uses: crazy-max/ghaction-import-gpg@v5
         with:
           fingerprint: "${{ secrets.GPG_FINGERPRINT }}"
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v4
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-go@v4
         with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean
+          go-version-file: "go.mod"
+
+      - run: go test -v ./...
+
+      - name: Build Linux, MacOS and Windows binaries
+        run: |
+          for arch in $ARCHES; do
+            for os in $OSES; do
+              for command in $COMMANDS; do
+                bin="git-${command}-${{ github.ref_name }}_${os}_${arch}";
+                test "${os}" = 'windows' && bin="${bin}.exe";
+                GOOS=$os GOARCH=$arch go build -v -o "${bin}" ./cmd/$command;
+              done;
+            done;
+          done
+
+      - name: Sign and notarize MacOS binaries
+        run: |
+          for arch in $ARCHES; do
+            for command in $COMMANDS; do
+              bin="git-${command}-${{ github.ref_name }}_darwin_${arch}";
+              codesign --sign 85778X8X36 --options runtime --timestamp "${bin}";
+              zip="${bin}.zip";
+              zip "${zip}" "${bin}";
+              rm -f "${bin}";
+              xcrun notarytool submit "${zip}" \
+              --apple-id 'ksserviceaccount@keepersecurity.com' \
+              --team-id 234QNB7GCA \
+              --password '${{ secrets.APP_SPECIFIC_PASSWORD }}' \
+              --wait;
+            done;
+          done
+
+      - name: Create checksums
+        run: shasum -a 256 *-${{ github.ref_name }}_*_*  >| checksums.txt
+
+      - name: Sign checksums
+        run: |
+          gpg --batch --yes --detach-sign --armor \
+            --local-user "${{ secrets.GPG_FINGERPRINT }}" \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --output checksums.txt.sig checksums.txt
+
+      - name: Create release
         env:
-          AC_USERNAME: ${{ secrets.AC_USERNAME }}
-          AC_PASSWORD:  ${{ secrets.AC_PASSWORD }}
-          AC_APPID: ${{ secrets.AC_APPID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}"
+
+      - name: Upload artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            *-${{ github.ref_name }}_*_* \
+            checksums.txt checksums.txt.sig
