@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/Keeper-Security/git-ssh-sign/internal/sign"
@@ -35,15 +36,17 @@ func main() {
 
 	var action string
 	var namespace string
-	var sshUID string
+	var inputFile string
 	var signatureFile string
 	var timestamp string
+	var principal string
 
-	flag.StringVar(&action, "Y", "", "Action to perform") 
-	flag.StringVar(&namespace, "n", "", "Namespace")      
-	flag.StringVar(&sshUID, "f", "", "SSH Key UID")
+	flag.StringVar(&action, "Y", "", "Action to perform")
+	flag.StringVar(&namespace, "n", "", "Namespace")
+	flag.StringVar(&inputFile, "f", "", "SSH Key UID or allowed_signers file")
 	flag.StringVar(&signatureFile, "s", "", "Signature file for verificaton")
 	flag.StringVar(&timestamp, "Overify-time", "", "TODO")
+	flag.StringVar(&principal, "I", "", "Principal to verify")
 	flag.Parse()
 
 	if len(os.Args) == 0 {
@@ -52,33 +55,33 @@ func main() {
 	}
 
 	// Only the 'git' namespace is supported.
-	if namespace != "git" {
+	if namespace != "" && namespace != "git" {
 		fmt.Println("Only the 'git' namespace is supported.")
 		os.Exit(1)
 	}
 
 	if action == "sign" {
-		// `flag.Args` returns the non-flag arguments, only. In this case, the 
-		// first and only argument should be the path to the file that contains 
+		// `flag.Args` returns the non-flag arguments, only. In this case, the
+		// first and only argument should be the path to the file that contains
 		// the commit data.
 		commitToSign := flag.Args()[0]
 		if commitToSign == "" {
 			fmt.Println("No commit file specified.")
 			os.Exit(1)
 		}
-	
-		privateKey, err := vault.FetchPrivateKey(sshUID)
+
+		keyPair, err := vault.FetchKeys(inputFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-	
+
 		file, err := os.Open(commitToSign)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-	
+
 		// To ensure that git can read the final signature file, we capture the
 		// file permissions of the commit file to ensure the signature file has the
 		// same permissions.
@@ -88,26 +91,77 @@ func main() {
 			os.Exit(1)
 		}
 		fileMode := fileinfo.Mode()
-	
-		sig, err := sign.SignCommit(privateKey, file)
+
+		sig, err := sign.SignCommit(keyPair.PrivateKey, file)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-	
+
 		if err := os.WriteFile(fmt.Sprintf("%s.sig", commitToSign), sig, fileMode); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		} else {
 			os.Exit(0)
 		}
-	} else if action == "check-novalidate" { 
-		// -Y check-novalidate -n git -s C:\Users\RICKYW~1\AppData\Local\Temp/.git_vtag_tmpudh6g6 -Overify-time=20230920083515
+
+	} else if action == "find-principals" {
+		// -Y find-principals -f <allowed_signers> -s C:\Users\RICKYW~1\AppData\Local\Temp/.git_vtag_tmpudh6g6 -Overify-time=20230920083515
+		// Get all principals from the allowed_signers file and take compare them the the public key in the signature file.
+
+		allowedSignersFile, err := os.Open(inputFile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		defer allowedSignersFile.Close()
+
+		allowedSigners, err := sign.GetAllowedSigners(allowedSignersFile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		signature, err := os.Open(signatureFile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		defer signature.Close()
+
+		sigBytes, err := io.ReadAll(signature)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		sig, err := sign.Decode(sigBytes)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		mp, err := sign.FindMatchingPrincipals(allowedSigners, sig)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		} else if len(mp) > 0 {
+			// If one or more matching principals are found, they are returned
+			// on standard output.
+			for _, p := range mp {
+				fmt.Println(p)
+			}
+			os.Exit(0)
+		} else {
+			fmt.Println("No matching principals found")
+			os.Exit(1)
+		}
+
+	} else if action == "verify" {
+		// TODO: Implement
 
 	} else {
-		fmt.Println("Unsupported action. Only 'sign' and 'check-novalidate' are supported")
+		fmt.Println("Unsupported action. Only 'sign', 'find-principals', 'verify' are supported")
 		os.Exit(1)
 	}
 }
-
-
