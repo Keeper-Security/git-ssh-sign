@@ -8,6 +8,7 @@ import (
 
 	"github.com/Keeper-Security/git-ssh-sign/internal/sign"
 	"github.com/Keeper-Security/git-ssh-sign/internal/vault"
+	"golang.org/x/crypto/ssh"
 )
 
 func main() {
@@ -122,20 +123,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		signature, err := os.Open(signatureFile)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		defer signature.Close()
-
-		sigBytes, err := io.ReadAll(signature)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		sig, err := sign.Decode(sigBytes)
+		sig, err := signatureFileToObj(signatureFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -159,9 +147,88 @@ func main() {
 
 	} else if action == "verify" {
 		// TODO: Implement
+		// Successful verification by an authorized signer is signalled by
+		// ssh-keygen returning a zero exit status.
+
+		// fmt.Println(os.Args)
+
+		sig, err := signatureFileToObj(signatureFile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}	
+
+		if err := sign.VerifyFingerprints([]byte(principal), sig.PublicKey); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		// Get email of matching principal from the allowed_signers file.
+		allowedSignersFile, err := os.Open(inputFile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		defer allowedSignersFile.Close()
+
+		allowedSigners, err := sign.GetAllowedSigners(allowedSignersFile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		var principalEmail string
+		for _, p := range allowedSigners {
+			if p.PublicKey == principal {
+				principalEmail = p.Email
+				break
+			}
+		}
+
+		pk, err := convertToSSHPublicKey(principal)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		
+		fmt.Printf("Good \"%s\" signature for %s with %s key %s\n", namespace, principalEmail, sig.HashAlgorithm, ssh.FingerprintSHA256(pk))
+		os.Exit(0)
+
+	} else if action == "check-novalidate" {
+		os.Exit(0)
 
 	} else {
-		fmt.Println("Unsupported action. Only 'sign', 'find-principals', 'verify' are supported")
+		fmt.Println(os.Args)
+		// fmt.Println("Unsupported action. Only 'sign', 'find-principals', 'verify' are supported")
 		os.Exit(1)
 	}
+}
+
+func signatureFileToObj(signatureFile string) (*sign.Signature, error) {
+	signature, err := os.Open(signatureFile)
+	if err != nil {
+		return nil, err
+	}
+	defer signature.Close()
+
+	sigBytes, err := io.ReadAll(signature)
+	if err != nil {
+		return nil, err
+	}
+
+	sig, err := sign.Decode(sigBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return sig, nil
+}
+
+func convertToSSHPublicKey(key string) (ssh.PublicKey, error) {
+	// Parse into wire format
+	pak, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
+	if err != nil {
+		return nil, err
+	}
+	return pak, nil
 }

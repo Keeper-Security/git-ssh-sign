@@ -15,11 +15,15 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+type AllowedSigner struct {
+	Email     string
+	PublicKey string
+}
 
 type Signature struct {
-	signature *ssh.Signature
-	pubKey    ssh.PublicKey
-	hashAlg   string
+	Signature     *ssh.Signature
+	PublicKey     ssh.PublicKey
+	HashAlgorithm string
 }
 
 var supportedHashAlgorithms = map[string]func() hash.Hash{
@@ -50,7 +54,7 @@ func Decode(b []byte) (*Signature, error) {
 	if string(sig.MagicHeader[:]) != magicHeader {
 		return nil, fmt.Errorf("invalid magic header: %s", sig.MagicHeader[:])
 	}
-	if sig.Namespace != "git" {
+	if sig.Namespace != namespace {
 		return nil, fmt.Errorf("invalid signature namespace: %s", sig.Namespace)
 	}
 	if _, ok := supportedHashAlgorithms[sig.HashAlgorithm]; !ok {
@@ -69,65 +73,63 @@ func Decode(b []byte) (*Signature, error) {
 	}
 
 	return &Signature{
-		signature: &sshSig,
-		pubKey:    pk,
-		hashAlg:   sig.HashAlgorithm,
+		Signature:     &sshSig,
+		PublicKey:     pk,
+		HashAlgorithm: sig.HashAlgorithm,
 	}, nil
 }
 
+func GetAllowedSigners(f *os.File) ([]AllowedSigner, error) {
+	var allowedSigners []AllowedSigner
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
 
-func Verify(armoredSignature []byte, key []byte) (bool, error) {
-	decodedSignature, err := Decode(armoredSignature)
-	if err != nil {
-		return false, err
+		as := AllowedSigner{
+			Email: fields[0],
+			PublicKey: fields[1]+ " " + fields[2],
+		}
+		allowedSigners = append(allowedSigners, as)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
 	}
 
-	publicKey, _, _, _, err := ssh.ParseAuthorizedKey(key)
-	if err != nil {
-		return false, err
-	}
-
-	if decodedSignature.pubKey == publicKey {
-		fmt.Println("Public keys match")
-		return true, nil
-	} else	{
-		fmt.Println("Public keys do not match")
-		return false, nil
-	}
-
+	return allowedSigners, nil
 }
 
-func GetAllowedSigners(f *os.File) ([]string, error) {
-    var publicKeys []string
-    scanner := bufio.NewScanner(f)
-    for scanner.Scan() {
-        line := scanner.Text()
-        fields := strings.Fields(line)
-        for index, field := range fields {
-            if strings.HasPrefix(field, "ssh") {
-				publicKeys = append(publicKeys, field+" "+fields[index+1])
-				break
-            }
-        }
-    }
-    if err := scanner.Err(); err != nil {
-        return nil, err
-    }
-
-    return publicKeys, nil
-}
-
-func FindMatchingPrincipals(allowedSigners []string, signature *Signature) ([]string, error) {
+func FindMatchingPrincipals(as []AllowedSigner, signature *Signature) ([]string, error) {
 	var matchingPrincipals []string
-	for _, p := range allowedSigners {
+	for _, p := range as {
 		// Parse into wire format
-		pak, _, _, _, err := ssh.ParseAuthorizedKey([]byte(p))
+		pak, _, _, _, err := ssh.ParseAuthorizedKey([]byte(p.PublicKey))
 		if err != nil {
 			return nil, err
-		}	
-		if bytes.Equal(signature.pubKey.Marshal(), pak.Marshal()) {
-			matchingPrincipals = append(matchingPrincipals, p)
+		}
+		if bytes.Equal(signature.PublicKey.Marshal(), pak.Marshal()) {
+			matchingPrincipals = append(matchingPrincipals, p.PublicKey)
 		}
 	}
 	return matchingPrincipals, nil
+}
+
+func VerifyFingerprints(principal []byte, pubKey ssh.PublicKey) error {
+
+	fmt.Println(string(principal))
+	fmt.Println(string(pubKey.Marshal()))
+
+	// Parse into wire format
+	pak, _, _, _, err := ssh.ParseAuthorizedKey(principal)
+	if err != nil {
+		return err
+	}
+
+	principalHash := []byte(ssh.FingerprintSHA256(pak))
+	pubKeyHash := []byte(ssh.FingerprintSHA256(pubKey))
+
+	if bytes.Equal(principalHash, pubKeyHash) {
+		return nil
+	}
+	return errors.New("fingerprint does not match")
 }
