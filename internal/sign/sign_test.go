@@ -1,8 +1,11 @@
 package sign
 
 import (
+	"bytes"
 	"strings"
 	"testing"
+
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -10,54 +13,59 @@ var (
 	// 		ssh-keygen -C test@example.com -t ed25519 -f test_key
 	ed25519PrivateKey = `-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACCz+xopc6E4JvXVzyjCo+XGFuLePWU4641LMeAk1zkJ9AAAAJgzIeG6MyHh
-ugAAAAtzc2gtZWQyNTUxOQAAACCz+xopc6E4JvXVzyjCo+XGFuLePWU4641LMeAk1zkJ9A
-AAAEAF5dYQF/fBefn+Kn7M+1BjY6JZ/9TnOpeXQeMmNiv607P7GilzoTgm9dXPKMKj5cYW
-4t49ZTjrjUsx4CTXOQn0AAAAEHRlc3RAZXhhbXBsZS5jb20BAgMEBQ==
+QyNTUxOQAAACBEL0qwb9vCiwI2Du6Q/daa4ZXp65t4WeAew3XAf+Px/gAAAJjrEknt6xJJ
+7QAAAAtzc2gtZWQyNTUxOQAAACBEL0qwb9vCiwI2Du6Q/daa4ZXp65t4WeAew3XAf+Px/g
+AAAECc4rBgLCDFFGGM1TOtV5VpkGTERsYw/237NqOB/AtCOEQvSrBv28KLAjYO7pD91prh
+lenrm3hZ4B7DdcB/4/H+AAAAEHRlc3RAZXhhbXBsZS5jb20BAgMEBQ==
 -----END OPENSSH PRIVATE KEY-----		
 `
+
+	ed25519PublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEQvSrBv28KLAjYO7pD91prhlenrm3hZ4B7DdcB/4/H+ test@example.com"
 
 	// The following value was generated using the following command:
 	// 		ssh-keygen -C test@example -f test_key
 	rsaPrivateKey = `-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
-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
+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
 -----END OPENSSH PRIVATE KEY-----
 `
+
+	rsaPublicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDD8QxHgdYL7YQcy7HMsYn/JfFAfwJWNq5nCkkgfko7bA+NQeQcNzLhHIoz5TfCHux5Kb+H+mbb4mYZDY0eT2zgy5QbZkJpggeFw6mdT2n2Dgvof/gJULsDBh6ZbktRTlwkQXDg0OJT/W2CCo5J+5DoXaVczw68OmTd72j08/p56BsbXJK7RUpUK+m3gmhfmMQl7M5QCVVEe22PpXu7AMV6lmqym6cqcqMrman2+szcAvhqO+TNZBKI3zI8RXZHIHFSSQMlXMBqShm8IkynmRVy8kFy9K7tkjNoGlfiD/yi73ChaGZLhx2d8/cFm5FgRzEbA45fOVC0DMeNKpRoFejYZHrekwisAcIoZ2G2buxa6hzPxAC24cZ5F/eEeVmn+Lj8tWSPRR7p7AEMWnNqt0gNhY6wv+iAwkScvXRSBKwvnOQIXKGz2iYuRyhjuAkvrJDfpOw58bNILaTRzeRQAbR5UnsURN4nIKOg5/ioPkR85c4Dr31/DmAOTttdw4Sne0E= test@example"
+
 )
 
 func TestSignCommit(t *testing.T) {
@@ -94,4 +102,61 @@ func TestSignCommit(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVerifySignature(t *testing.T) {
+	data := []byte("Hello, git-ssh-sign!")
+	otherSSHPublicKey := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB2ZzQ8p3/T61CSfhzH9IDhvkLP95OZ9vjwFOFOWH64Y test@example.com"
+
+	for _, tt := range []struct {
+		name string
+		pub  string
+		priv string
+	}{
+		{
+			name: "rsa",
+			pub:  rsaPublicKey,
+			priv: rsaPrivateKey,
+		},
+		{
+			name: "ed25519",
+			pub:  ed25519PublicKey,
+			priv: ed25519PrivateKey,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tt := tt
+
+			s, err := ssh.ParsePrivateKey([]byte(tt.priv))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			as, ok := s.(ssh.AlgorithmSigner)
+			if !ok {
+				t.Fatal(err)
+			}
+
+			signature, err := signature(as, bytes.NewReader(data))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			decodedSignature, err := Decode(armor(signature, s.PublicKey()))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Verify the principal is the same as the one used to sign the data
+			if err := VerifyFingerprints([]byte(tt.pub), decodedSignature.PublicKey); err != nil {
+				t.Error(err)
+			}
+
+			// Should fail with a different principal used to sign the data
+			if err := VerifyFingerprints([]byte(otherSSHPublicKey), decodedSignature.PublicKey); err == nil {
+				t.Error("expected error!")
+			}
+		})
+	}
+
 }
