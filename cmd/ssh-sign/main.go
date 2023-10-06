@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/Keeper-Security/git-ssh-sign/internal/sign"
 	"github.com/Keeper-Security/git-ssh-sign/internal/vault"
@@ -109,6 +110,9 @@ func main() {
 	} else if action == "find-principals" {
 		// -Y find-principals -f <allowed_signers> -s C:\Users\RICKYW~1\AppData\Local\Temp/.git_vtag_tmpudh6g6 -Overify-time=20230920083515
 		// Get all principals from the allowed_signers file and take compare them the the public key in the signature file.
+		
+		os.WriteFile("find-principals.txt", []byte(strings.Join(os.Args, "\n")), 0644)
+
 
 		allowedSignersFile, err := os.Open(inputFile)
 		if err != nil {
@@ -150,7 +154,7 @@ func main() {
 		// Successful verification by an authorized signer is signalled by
 		// ssh-keygen returning a zero exit status.
 
-		// fmt.Println(os.Args)
+		os.WriteFile("verify.txt", []byte(strings.Join(os.Args, "\n")), 0644)
 
 		sig, err := signatureFileToObj(signatureFile)
 		if err != nil {
@@ -190,11 +194,23 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		
-		fmt.Printf("Good \"%s\" signature for %s with %s key %s\n", namespace, principalEmail, sig.HashAlgorithm, ssh.FingerprintSHA256(pk))
+		pkType := strings.ToUpper(strings.Split(pk.Type(), "-")[1])
+
+		fmt.Printf("Good \"%s\" signature for %s with %s key %s\n", namespace, principalEmail, pkType, ssh.FingerprintSHA256(pk))
 		os.Exit(0)
 
 	} else if action == "check-novalidate" {
+		os.WriteFile("check-novalidate.txt", []byte(strings.Join(os.Args, "\n")), 0644)
+
+		sig, err := signatureFileToObj(signatureFile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}	
+
+		pkType := strings.ToUpper(strings.Split(sig.PublicKey.Type(), "-")[1])
+		fmt.Printf("Good \"%s\" signature with %s key %s\n", namespace, pkType, ssh.FingerprintSHA256(sig.PublicKey))
+		fmt.Println("No principal matched")
 		os.Exit(0)
 
 	} else {

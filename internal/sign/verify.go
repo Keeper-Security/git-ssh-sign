@@ -115,10 +115,6 @@ func FindMatchingPrincipals(as []AllowedSigner, signature *Signature) ([]string,
 }
 
 func VerifyFingerprints(principal []byte, pubKey ssh.PublicKey) error {
-
-	fmt.Println(string(principal))
-	fmt.Println(string(pubKey.Marshal()))
-
 	// Parse into wire format
 	pak, _, _, _, err := ssh.ParseAuthorizedKey(principal)
 	if err != nil {
