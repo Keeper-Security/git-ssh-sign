@@ -1,4 +1,4 @@
-package sign
+package verify
 
 import (
 	"bufio"
@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Keeper-Security/git-ssh-sign/internal/sign"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -43,7 +44,7 @@ func Decode(b []byte) (*Signature, error) {
 	}
 
 	// Now we unmarshal it into the Signature block
-	sig := WrappedSig{}
+	sig := sign.WrappedSig{}
 	if err := ssh.Unmarshal(pemBlock.Bytes, &sig); err != nil {
 		return nil, err
 	}
@@ -51,10 +52,10 @@ func Decode(b []byte) (*Signature, error) {
 	if sig.Version != 1 {
 		return nil, fmt.Errorf("unsupported signature version: %d", sig.Version)
 	}
-	if string(sig.MagicHeader[:]) != magicHeader {
+	if string(sig.MagicHeader[:]) != sign.MagicHeader {
 		return nil, fmt.Errorf("invalid magic header: %s", sig.MagicHeader[:])
 	}
-	if sig.Namespace != namespace {
+	if sig.Namespace != sign.Namespace {
 		return nil, fmt.Errorf("invalid signature namespace: %s", sig.Namespace)
 	}
 	if _, ok := supportedHashAlgorithms[sig.HashAlgorithm]; !ok {
@@ -79,6 +80,21 @@ func Decode(b []byte) (*Signature, error) {
 	}, nil
 }
 
+func FindMatchingPrincipals(as []AllowedSigner, signature *Signature) ([]string, error) {
+	var matchingPrincipals []string
+	for _, p := range as {
+		// Parse into wire format
+		pak, _, _, _, err := ssh.ParseAuthorizedKey([]byte(p.PublicKey))
+		if err != nil {
+			return nil, err
+		}
+		if bytes.Equal(signature.PublicKey.Marshal(), pak.Marshal()) {
+			matchingPrincipals = append(matchingPrincipals, p.PublicKey)
+		}
+	}
+	return matchingPrincipals, nil
+}
+
 func GetAllowedSigners(f *os.File) ([]AllowedSigner, error) {
 	var allowedSigners []AllowedSigner
 	scanner := bufio.NewScanner(f)
@@ -97,21 +113,6 @@ func GetAllowedSigners(f *os.File) ([]AllowedSigner, error) {
 	}
 
 	return allowedSigners, nil
-}
-
-func FindMatchingPrincipals(as []AllowedSigner, signature *Signature) ([]string, error) {
-	var matchingPrincipals []string
-	for _, p := range as {
-		// Parse into wire format
-		pak, _, _, _, err := ssh.ParseAuthorizedKey([]byte(p.PublicKey))
-		if err != nil {
-			return nil, err
-		}
-		if bytes.Equal(signature.PublicKey.Marshal(), pak.Marshal()) {
-			matchingPrincipals = append(matchingPrincipals, p.PublicKey)
-		}
-	}
-	return matchingPrincipals, nil
 }
 
 func VerifyFingerprints(principal []byte, pubKey ssh.PublicKey) error {

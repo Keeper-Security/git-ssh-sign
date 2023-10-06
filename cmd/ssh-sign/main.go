@@ -9,6 +9,7 @@ import (
 
 	"github.com/Keeper-Security/git-ssh-sign/internal/sign"
 	"github.com/Keeper-Security/git-ssh-sign/internal/vault"
+	"github.com/Keeper-Security/git-ssh-sign/internal/verify"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -85,8 +86,8 @@ func main() {
 		}
 
 		// To ensure that git can read the final signature file, we capture the
-		// file permissions of the commit file to ensure the signature file has the
-		// same permissions.
+		// file permissions of the commit file to ensure the signature file has 
+		// the same permissions.
 		fileinfo, err := os.Stat(commitToSign)
 		if err != nil {
 			fmt.Println(err)
@@ -108,12 +109,9 @@ func main() {
 		}
 
 	} else if action == "find-principals" {
-		// -Y find-principals -f <allowed_signers> -s C:\Users\RICKYW~1\AppData\Local\Temp/.git_vtag_tmpudh6g6 -Overify-time=20230920083515
-		// Get all principals from the allowed_signers file and take compare them the the public key in the signature file.
+		// Get all principals from the allowed_signers file and compare them 
+		// to the public key in the signature file.
 		
-		os.WriteFile("find-principals.txt", []byte(strings.Join(os.Args, "\n")), 0644)
-
-
 		allowedSignersFile, err := os.Open(inputFile)
 		if err != nil {
 			fmt.Println(err)
@@ -121,19 +119,19 @@ func main() {
 		}
 		defer allowedSignersFile.Close()
 
-		allowedSigners, err := sign.GetAllowedSigners(allowedSignersFile)
+		allowedSigners, err := verify.GetAllowedSigners(allowedSignersFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		sig, err := signatureFileToObj(signatureFile)
+		sig, err := ParseSignatureFile(signatureFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		mp, err := sign.FindMatchingPrincipals(allowedSigners, sig)
+		mp, err := verify.FindMatchingPrincipals(allowedSigners, sig)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -150,19 +148,16 @@ func main() {
 		}
 
 	} else if action == "verify" {
-		// TODO: Implement
 		// Successful verification by an authorized signer is signalled by
 		// ssh-keygen returning a zero exit status.
 
-		os.WriteFile("verify.txt", []byte(strings.Join(os.Args, "\n")), 0644)
-
-		sig, err := signatureFileToObj(signatureFile)
+		sig, err := ParseSignatureFile(signatureFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}	
 
-		if err := sign.VerifyFingerprints([]byte(principal), sig.PublicKey); err != nil {
+		if err := verify.VerifyFingerprints([]byte(principal), sig.PublicKey); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
@@ -175,7 +170,7 @@ func main() {
 		}
 		defer allowedSignersFile.Close()
 
-		allowedSigners, err := sign.GetAllowedSigners(allowedSignersFile)
+		allowedSigners, err := verify.GetAllowedSigners(allowedSignersFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -189,20 +184,19 @@ func main() {
 			}
 		}
 
-		pk, err := convertToSSHPublicKey(principal)
+		pak, _, _, _, err := ssh.ParseAuthorizedKey([]byte(principal))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		pkType := strings.ToUpper(strings.Split(pk.Type(), "-")[1])
 
-		fmt.Printf("Good \"%s\" signature for %s with %s key %s\n", namespace, principalEmail, pkType, ssh.FingerprintSHA256(pk))
+		pkType := strings.ToUpper(strings.Split(pak.Type(), "-")[1])
+
+		fmt.Printf("Good \"%s\" signature for %s with %s key %s\n", namespace, principalEmail, pkType, ssh.FingerprintSHA256(pak))
 		os.Exit(0)
 
 	} else if action == "check-novalidate" {
-		os.WriteFile("check-novalidate.txt", []byte(strings.Join(os.Args, "\n")), 0644)
-
-		sig, err := signatureFileToObj(signatureFile)
+		sig, err := ParseSignatureFile(signatureFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -214,13 +208,12 @@ func main() {
 		os.Exit(0)
 
 	} else {
-		fmt.Println(os.Args)
-		// fmt.Println("Unsupported action. Only 'sign', 'find-principals', 'verify' are supported")
+		fmt.Println("Unsupported action. Only 'sign', 'find-principals', 'verify', and 'check-novalidate' are supported")
 		os.Exit(1)
 	}
 }
 
-func signatureFileToObj(signatureFile string) (*sign.Signature, error) {
+func ParseSignatureFile(signatureFile string) (*verify.Signature, error) {
 	signature, err := os.Open(signatureFile)
 	if err != nil {
 		return nil, err
@@ -232,19 +225,10 @@ func signatureFileToObj(signatureFile string) (*sign.Signature, error) {
 		return nil, err
 	}
 
-	sig, err := sign.Decode(sigBytes)
+	sig, err := verify.Decode(sigBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	return sig, nil
-}
-
-func convertToSSHPublicKey(key string) (ssh.PublicKey, error) {
-	// Parse into wire format
-	pak, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
-	if err != nil {
-		return nil, err
-	}
-	return pak, nil
 }

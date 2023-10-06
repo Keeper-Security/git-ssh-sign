@@ -1,8 +1,11 @@
-package sign
+package verify
 
 import (
-	"strings"
+	"bytes"
 	"testing"
+
+	"github.com/Keeper-Security/git-ssh-sign/internal/sign"
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -16,6 +19,8 @@ AAAECc4rBgLCDFFGGM1TOtV5VpkGTERsYw/237NqOB/AtCOEQvSrBv28KLAjYO7pD91prh
 lenrm3hZ4B7DdcB/4/H+AAAAEHRlc3RAZXhhbXBsZS5jb20BAgMEBQ==
 -----END OPENSSH PRIVATE KEY-----		
 `
+
+	ed25519PublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEQvSrBv28KLAjYO7pD91prhlenrm3hZ4B7DdcB/4/H+ test@example.com"
 
 	// The following value was generated using the following command:
 	// 		ssh-keygen -C test@example -f test_key
@@ -58,41 +63,65 @@ uJ1Awx7wJYmxfF9Q6Vj3v7o/B8IPA5xxA1H1AglnzESKtRUwm1PAOPDLSQWaMgj5erTLAt
 MQUjv26NIZPFqtAAAADHRlc3RAZXhhbXBsZQECAwQFBg==
 -----END OPENSSH PRIVATE KEY-----
 `
+
+	rsaPublicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDD8QxHgdYL7YQcy7HMsYn/JfFAfwJWNq5nCkkgfko7bA+NQeQcNzLhHIoz5TfCHux5Kb+H+mbb4mYZDY0eT2zgy5QbZkJpggeFw6mdT2n2Dgvof/gJULsDBh6ZbktRTlwkQXDg0OJT/W2CCo5J+5DoXaVczw68OmTd72j08/p56BsbXJK7RUpUK+m3gmhfmMQl7M5QCVVEe22PpXu7AMV6lmqym6cqcqMrman2+szcAvhqO+TNZBKI3zI8RXZHIHFSSQMlXMBqShm8IkynmRVy8kFy9K7tkjNoGlfiD/yi73ChaGZLhx2d8/cFm5FgRzEbA45fOVC0DMeNKpRoFejYZHrekwisAcIoZ2G2buxa6hzPxAC24cZ5F/eEeVmn+Lj8tWSPRR7p7AEMWnNqt0gNhY6wv+iAwkScvXRSBKwvnOQIXKGz2iYuRyhjuAkvrJDfpOw58bNILaTRzeRQAbR5UnsURN4nIKOg5/ioPkR85c4Dr31/DmAOTttdw4Sne0E= test@example"
+
 )
 
-func TestSignCommit(t *testing.T) {
-	data := strings.NewReader("test data")
 
-	tests := []struct {
-		name    string
-		key     string
-		wantErr bool
+func TestVerifySignature(t *testing.T) {
+	data := []byte("Hello, git-ssh-sign!")
+	otherSSHPublicKey := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB2ZzQ8p3/T61CSfhzH9IDhvkLP95OZ9vjwFOFOWH64Y test@example.com"
+
+	for _, tt := range []struct {
+		name string
+		pub  string
+		priv string
 	}{
 		{
-			name:    "ED25519 Key",
-			key:     ed25519PrivateKey,
-			wantErr: false,
+			name: "rsa",
+			pub:  rsaPublicKey,
+			priv: rsaPrivateKey,
 		},
 		{
-			name:    "RSA Key",
-			key:     rsaPrivateKey,
-			wantErr: false,
+			name: "ed25519",
+			pub:  ed25519PublicKey,
+			priv: ed25519PrivateKey,
 		},
-		{
-			name:    "Invalid Key",
-			key:     "invalid key",
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
+	} {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := SignCommit(tt.key, data)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("TestSignCommit expected: %v, got: %v", tt.wantErr, err)
-				return
+			tt := tt
+
+			s, err := ssh.ParsePrivateKey([]byte(tt.priv))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			as, ok := s.(ssh.AlgorithmSigner)
+			if !ok {
+				t.Fatal(err)
+			}
+
+			signature, err := sign.NewSignature(as, bytes.NewReader(data))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			decodedSignature, err := Decode(sign.Armor(signature, s.PublicKey()))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Verify the principal is the same as the one used to sign the data
+			if err := VerifyFingerprints([]byte(tt.pub), decodedSignature.PublicKey); err != nil {
+				t.Error(err)
+			}
+
+			// Should fail with a different principal used to sign the data
+			if err := VerifyFingerprints([]byte(otherSSHPublicKey), decodedSignature.PublicKey); err == nil {
+				t.Error("expected error!")
 			}
 		})
 	}
-}
 
+}
