@@ -13,29 +13,6 @@ import (
 )
 
 func main() {
-	/*
-		When the gpg.format = ssh, git calls this program and will pass the
-		following arguments:
-
-			-Y sign -n git -f <KEY> /tmp/.git_signing_buffer_file
-
-		The <KEY> is the user.signingkey value from the git config. This will
-		be the UID of the record in the Vault.
-		The /tmp/.git_signing_buffer_file is the file that contains the commit
-		data that is to be signed.
-
-		We need to:
-		1. Fetch the private key from the Vault based on the UID.
-		2. Sign the commit.
-		3. Write the signature to a file. The file name should be the same as
-		   the commit file but with a .sig extension.
-
-		As long as the program returns a 0 exit code, git will continue with
-		the commit, even if incorrectly signed. git wil not verify the
-		signature at the time of commiting. If the exit code is non-zero,
-		git will abort the commit.
-	*/
-
 	var action string
 	var namespace string
 	var inputFile string
@@ -63,6 +40,28 @@ func main() {
 	}
 
 	if action == "sign" {
+		/*
+			When the gpg.format = ssh, git calls this program and will pass the
+			following arguments:	
+				-Y sign -n git -f <KEY> /tmp/.git_signing_buffer_file
+
+			The <KEY> is the user.signingkey value from the git config. This will
+			be the UID of the record in the Vault.
+			The /tmp/.git_signing_buffer_file is the file that contains the commit
+			data that is to be signed.
+
+			We need to:
+			1. Fetch the private key from the Vault based on the UID.
+			2. Sign the commit.
+			3. Write the signature to a file. The file name should be the same as
+			the commit file but with a .sig extension.
+
+			As long as the program returns a 0 exit code, git will continue with
+			the commit, even if incorrectly signed. git wil not verify the
+			signature at the time of commiting. If the exit code is non-zero,
+			git will abort the commit.
+		*/
+
 		// `flag.Args` returns the non-flag arguments, only. In this case, the
 		// first and only argument should be the path to the file that contains
 		// the commit data.
@@ -108,9 +107,16 @@ func main() {
 		}
 
 	} else if action == "find-principals" {
-		// Get all principals from the allowed_signers file and compare them 
-		// to the public key in the signature file.
-		
+		/*
+			When verifying a signature locally, git will begin by collecting 
+			all the verified signers from the allowed_signers file that match 
+			the git commit passed. If one or more principals are found, hey are
+			returned to stdout.
+			
+			The following arguments are passed to at this stage:
+			-Y find-principals -f <allowed_signers_file> -s <signature_file> -Overify-time=<timestamp>
+		*/
+				
 		allowedSigners, err := verify.GetAllowedSigners(inputFile)
 		if err != nil {
 			fmt.Println(err)
@@ -140,8 +146,18 @@ func main() {
 		}
 
 	} else if action == "verify" {
-		// Successful verification by an authorized signer is signalled by
-		// ssh-keygen returning a zero exit status.
+		/*
+			The second stage of the verification process is to verify the
+			signature against the commit data. The fingerprints of the 
+			principal are compared to the fingerprints of the public key in 
+			the signature file. If they match, the signature is considered 
+			verified. Successful verification by an authorized signer is 
+			signalled by returning a zero exit status.
+
+			The following arguments are passed to at this stage:
+			-Y verify -n git -f <allowed_signers_file> -I <principal> -s <signature_file> -Overify-time=<timestamp>
+		*/
+
 		sig, err := verify.ParseSignatureFile(signatureFile)
 		if err != nil {
 			fmt.Println(err)
@@ -159,7 +175,10 @@ func main() {
 			os.Exit(1)
 		}
 		
-		// Get email of matching principal from the allowed_signers file.
+		// Get email of the matching principal from the allowed_signers file.
+		// This is used to display the email address of the signer in stdout.
+		// Note: it is possible for multple principals to have the same email 
+		// address associated with them. In this case, the first match is used.
 		var principalEmail string
 		for _, p := range allowedSigners {
 			if p.PublicKey == principal {
@@ -168,6 +187,7 @@ func main() {
 			}
 		}
 
+		// Parse the public key into SSH wire format
 		pak, _, _, _, err := ssh.ParseAuthorizedKey([]byte(principal))
 		if err != nil {
 			fmt.Println(err)
@@ -175,11 +195,15 @@ func main() {
 		}
 
 		pkType := strings.ToUpper(strings.Split(pak.Type(), "-")[1])
-
 		fmt.Printf("Good \"%s\" signature for %s with %s key %s\n", namespace, principalEmail, pkType, ssh.FingerprintSHA256(pak))
 		os.Exit(0)
 
 	} else if action == "check-novalidate" {
+		// Checks the principal passed by git against the public key in the
+		// signature file. If they match, the signature is valid. At this point
+		// of the workflow, git already knows the publis key is not in the 
+		// allowed_signers file, and therefore will not be able to verify the 
+		// signature.
 		sig, err := verify.ParseSignatureFile(signatureFile)
 		if err != nil {
 			fmt.Println(err)
@@ -192,6 +216,8 @@ func main() {
 		os.Exit(0)
 
 	} else {
+		// The only unsupported action is 'match-principals' as it is not used
+		// by git.
 		fmt.Println("Unsupported action. Only 'sign', 'find-principals', 'verify', and 'check-novalidate' are supported")
 		os.Exit(1)
 	}
