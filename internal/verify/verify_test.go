@@ -108,10 +108,9 @@ func TestFindMatchingPrincipals(t *testing.T) {
 }
 
 func TestGetAllowedSigners(t *testing.T) {
-	// Create a test file
-	testFile := "testfile.txt"
-	f, err := os.Create(testFile)
-	defer os.Remove(testFile)
+	// Create a test allowed_signers file
+	f, err := os.CreateTemp(os.TempDir(), "allowed_signers-*")
+	defer os.Remove(f.Name())
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
@@ -120,11 +119,12 @@ func TestGetAllowedSigners(t *testing.T) {
 	fmt.Fprintln(f, allowedSigners[1].Email, allowedSigners[1].PublicKey)
 
 	// Get the AllowedSigners from the test file
-	as, err := GetAllowedSigners(testFile)
+	as, err := GetAllowedSigners(f.Name())
 	if err != nil {
 		t.Fatalf("GetAllowedSigners returned an error: %v", err)
 	}
 
+	// Compare the returned AllowedSigners with the expected AllowedSigners
 	if !reflect.DeepEqual(as, allowedSigners) {
 		t.Errorf("GetAllowedSigners returned %v, expected %v", as, allowedSigners)
 	}
@@ -138,6 +138,7 @@ func TestVerifyFingerprints(t *testing.T) {
 		t.Fatalf("Failed to parse test principal: %v", err)
 	}
 
+	// Verify the principal is the same as the one used to sign the data
 	if err := VerifyFingerprints(principal, pubKey); err != nil {
 		t.Errorf("VerifyFingerprints returned an error: %v", err)
 	}
@@ -145,7 +146,7 @@ func TestVerifyFingerprints(t *testing.T) {
 
 func TestVerifySignature(t *testing.T) {
 	data := []byte("Hello, git-ssh-sign!")
-	otherSSHPublicKey := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB2ZzQ8p3/T61CSfhzH9IDhvkLP95OZ9vjwFOFOWH64Y test@example.com"
+	otherSSHPublicKey := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB2ZzQ8p3/T61CSfhzH9IDhvkLP95OZ9vjwFOFOWH64Y"
 
 	for _, tt := range []struct {
 		name string
@@ -176,6 +177,7 @@ func TestVerifySignature(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			// Create signature for the data in `data`
 			signature, err := sign.NewSignature(as, bytes.NewReader(data))
 			if err != nil {
 				t.Fatal(err)
@@ -248,9 +250,8 @@ func TestValidDecode(t *testing.T) {
 }
 
 func TestInvalidDecode(t *testing.T) {
-	dataFile := "invalid-decode.txt"
-	f, err := os.Create(dataFile)
-	defer os.Remove(dataFile)
+	f, err := os.CreateTemp(os.TempDir(), "invalid-decode-*")
+	defer os.Remove(f.Name())
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
@@ -286,20 +287,22 @@ func TestInvalidDecode(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			// Create a signature for the data in `data`
 			sig, err := sign.NewSignature(as, f)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			// Wrap the signature in a MessageWrapper with an invalid namespace
+			// and test is fails
 			swn := CreateInvalidArmor(1, string(tt.pub), "INVALID", sign.DefaultHashAlgorithm, sig, sign.MagicHeader)
-
 			_, err = Decode(swn)
 			if err == nil {
 				t.Fatalf("Decode returned no error, expected error")
 			}
 
-			// Wrap the signature in a MessageWrapper with an invalid hash
+			// Wrap the signature in a MessageWrapper with an invalid hash and 
+			// test is fails
 			swh := CreateInvalidArmor(1, string(tt.pub), sign.Namespace, "INVALID", sig, sign.MagicHeader)
 			_, err = Decode(swh)
 			if err == nil {
@@ -307,7 +310,7 @@ func TestInvalidDecode(t *testing.T) {
 			}
 
 			// Wrap the signature in a MessageWrapper with an invalid magic
-			// header
+			// header and test it fails
 			swmh := CreateInvalidArmor(1, string(tt.pub), sign.Namespace, sign.DefaultHashAlgorithm, sig, "INVALID")
 			_, err = Decode(swmh)
 			if err == nil {
@@ -315,6 +318,7 @@ func TestInvalidDecode(t *testing.T) {
 			}
 
 			// Wrap the signature in a MessageWrapper with an invalid version
+			// and test it fails
 			swv := CreateInvalidArmor(1000, string(tt.pub), sign.Namespace, sign.DefaultHashAlgorithm, sig, sign.MagicHeader)
 			_, err = Decode(swv)
 			if err == nil {
@@ -322,7 +326,6 @@ func TestInvalidDecode(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func CreateInvalidArmor(v uint32, pk string, ns string, ha string, sig *ssh.Signature, mh string) []byte {
