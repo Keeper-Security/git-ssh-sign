@@ -69,17 +69,16 @@ MQUjv26NIZPFqtAAAADHRlc3RAZXhhbXBsZQECAwQFBg==
 `
 
 	rsaPublicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDD8QxHgdYL7YQcy7HMsYn/JfFAfwJWNq5nCkkgfko7bA+NQeQcNzLhHIoz5TfCHux5Kb+H+mbb4mYZDY0eT2zgy5QbZkJpggeFw6mdT2n2Dgvof/gJULsDBh6ZbktRTlwkQXDg0OJT/W2CCo5J+5DoXaVczw68OmTd72j08/p56BsbXJK7RUpUK+m3gmhfmMQl7M5QCVVEe22PpXu7AMV6lmqym6cqcqMrman2+szcAvhqO+TNZBKI3zI8RXZHIHFSSQMlXMBqShm8IkynmRVy8kFy9K7tkjNoGlfiD/yi73ChaGZLhx2d8/cFm5FgRzEbA45fOVC0DMeNKpRoFejYZHrekwisAcIoZ2G2buxa6hzPxAC24cZ5F/eEeVmn+Lj8tWSPRR7p7AEMWnNqt0gNhY6wv+iAwkScvXRSBKwvnOQIXKGz2iYuRyhjuAkvrJDfpOw58bNILaTRzeRQAbR5UnsURN4nIKOg5/ioPkR85c4Dr31/DmAOTttdw4Sne0E="
-
 )
 
 var (
 	allowedSigners = []AllowedSigner{
 		{
-			Email: "test@example.com",
+			Email:     "test@example.com",
 			PublicKey: ed25519PublicKey,
 		},
 		{
-			Email: "test@example.com",
+			Email:     "test@example.com",
 			PublicKey: rsaPublicKey,
 		},
 	}
@@ -90,60 +89,59 @@ func TestFindMatchingPrincipals(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to parse test principal: %v", err)
 	}
-	
+
 	sig := &Signature{
-        PublicKey: principal,
-    }
+		PublicKey: principal,
+	}
 
-    // Find matching principals
-    matchingPrincipals, err := FindMatchingPrincipals(allowedSigners, sig)
-    if err != nil {
-        t.Fatalf("FindMatchingPrincipals returned an error: %v", err)
-    }
+	// Find matching principals
+	matchingPrincipals, err := FindMatchingPrincipals(allowedSigners, sig)
+	if err != nil {
+		t.Fatalf("FindMatchingPrincipals returned an error: %v", err)
+	}
 
-    // Check that the correct principals were found
-    expectedPrincipals := []string{allowedSigners[0].PublicKey}
-    if !reflect.DeepEqual(matchingPrincipals, expectedPrincipals) {
-        t.Errorf("FindMatchingPrincipals returned %v, expected %v", matchingPrincipals, expectedPrincipals)
-    }
+	// Check that the correct principals were found
+	expectedPrincipals := []string{allowedSigners[0].PublicKey}
+	if !reflect.DeepEqual(matchingPrincipals, expectedPrincipals) {
+		t.Errorf("FindMatchingPrincipals returned %v, expected %v", matchingPrincipals, expectedPrincipals)
+	}
 }
 
 func TestGetAllowedSigners(t *testing.T) {
-    // Create a test file
-    testFile := "testfile.txt"
-    f, err := os.Create(testFile)
-    if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-    }
-    fmt.Fprintln(f, allowedSigners[0].Email, allowedSigners[0].PublicKey)
-    fmt.Fprintln(f, allowedSigners[1].Email, allowedSigners[1].PublicKey)
-	defer f.Close()
+	// Create a test file
+	testFile := "testfile.txt"
+	f, err := os.Create(testFile)
 	defer os.Remove(testFile)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+	defer f.Close()
+	fmt.Fprintln(f, allowedSigners[0].Email, allowedSigners[0].PublicKey)
+	fmt.Fprintln(f, allowedSigners[1].Email, allowedSigners[1].PublicKey)
 
-    // Get the AllowedSigners from the test file
-    as, err := GetAllowedSigners(testFile)
-    if err != nil {
-        t.Fatalf("GetAllowedSigners returned an error: %v", err)
-    }
+	// Get the AllowedSigners from the test file
+	as, err := GetAllowedSigners(testFile)
+	if err != nil {
+		t.Fatalf("GetAllowedSigners returned an error: %v", err)
+	}
 
-    if !reflect.DeepEqual(as, allowedSigners) {
-        t.Errorf("GetAllowedSigners returned %v, expected %v", as, allowedSigners)
-    }
+	if !reflect.DeepEqual(as, allowedSigners) {
+		t.Errorf("GetAllowedSigners returned %v, expected %v", as, allowedSigners)
+	}
 }
 
 func TestVerifyFingerprints(t *testing.T) {
-    // Create a test principal and public key
-    principal := []byte(ed25519PublicKey)
-    pubKey, _, _, _, err := ssh.ParseAuthorizedKey(principal)
-    if err != nil {
-        t.Fatalf("Failed to parse test principal: %v", err)
-    }
+	// Create a test principal and public key
+	principal := []byte(ed25519PublicKey)
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(principal)
+	if err != nil {
+		t.Fatalf("Failed to parse test principal: %v", err)
+	}
 
-    if err := VerifyFingerprints(principal, pubKey); err != nil {
-        t.Errorf("VerifyFingerprints returned an error: %v", err)
-    }
+	if err := VerifyFingerprints(principal, pubKey); err != nil {
+		t.Errorf("VerifyFingerprints returned an error: %v", err)
+	}
 }
-
 
 func TestVerifySignature(t *testing.T) {
 	data := []byte("Hello, git-ssh-sign!")
@@ -202,7 +200,6 @@ func TestVerifySignature(t *testing.T) {
 
 }
 
-
 func TestValidDecode(t *testing.T) {
 	data := []byte("Hello, decode function!")
 
@@ -253,12 +250,12 @@ func TestValidDecode(t *testing.T) {
 func TestInvalidDecode(t *testing.T) {
 	dataFile := "invalid-decode.txt"
 	f, err := os.Create(dataFile)
+	defer os.Remove(dataFile)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
-	fmt.Fprintln(f, "Hello, decode function!")
 	defer f.Close()
-	defer os.Remove(dataFile)
+	fmt.Fprintln(f, "Hello, decode function!")
 
 	for _, tt := range []struct {
 		name string
@@ -295,91 +292,53 @@ func TestInvalidDecode(t *testing.T) {
 			}
 
 			// Wrap the signature in a MessageWrapper with an invalid namespace
-			swn := sign.WrappedSig{
-				Version:       1,
-				PublicKey:     string(tt.pub),
-				Namespace:     "file",
-				HashAlgorithm: sign.DefaultHashAlgorithm,
-				Signature:     string(ssh.Marshal(sig)),
-			}
-		
-			copy(swn.MagicHeader[:], sign.MagicHeader)
-		
-			swnPEM := pem.EncodeToMemory(&pem.Block{
-				Type:  "SSH SIGNATURE",
-				Bytes: ssh.Marshal(sig),
-			})
+			swn := CreateInvalidArmor(1, string(tt.pub), "INVALID", sign.DefaultHashAlgorithm, sig, sign.MagicHeader)
 
-			// Check that Decode returns an error when given an invalid 
-			// signature
-			_, err = Decode(swnPEM)
+			_, err = Decode(swn)
 			if err == nil {
 				t.Fatalf("Decode returned no error, expected error")
 			}
 
 			// Wrap the signature in a MessageWrapper with an invalid hash
-			swh := sign.WrappedSig{
-				Version:       1,
-				PublicKey:     string(tt.pub),
-				Namespace:     sign.Namespace,
-				HashAlgorithm: "invalid",
-				Signature:     string(ssh.Marshal(sig)),
-			}
-
-			copy(swh.MagicHeader[:], sign.MagicHeader)
-		
-			swhPEM := pem.EncodeToMemory(&pem.Block{
-				Type:  "SSH SIGNATURE",
-				Bytes: ssh.Marshal(sig),
-			})
-			_, err = Decode(swhPEM)
+			swh := CreateInvalidArmor(1, string(tt.pub), sign.Namespace, "INVALID", sig, sign.MagicHeader)
+			_, err = Decode(swh)
 			if err == nil {
 				t.Fatalf("Decode returned no error, expected error")
 			}
 
-			// Wrap the signature in a MessageWrapper with an invalid magic 
+			// Wrap the signature in a MessageWrapper with an invalid magic
 			// header
-			swmh := sign.WrappedSig{
-				Version:       1,
-				PublicKey:     string(tt.pub),
-				Namespace:     sign.Namespace,
-				HashAlgorithm: sign.DefaultHashAlgorithm,
-				Signature:     string(ssh.Marshal(sig)),
-			}
-
-			copy(swmh.MagicHeader[:], "INVALID")
-		
-			swmhPEM := pem.EncodeToMemory(&pem.Block{
-				Type:  "SSH SIGNATURE",
-				Bytes: ssh.Marshal(sig),
-			})
-			_, err = Decode(swmhPEM)
+			swmh := CreateInvalidArmor(1, string(tt.pub), sign.Namespace, sign.DefaultHashAlgorithm, sig, "INVALID")
+			_, err = Decode(swmh)
 			if err == nil {
 				t.Fatalf("Decode returned no error, expected error")
 			}
 
 			// Wrap the signature in a MessageWrapper with an invalid version
-			swv := sign.WrappedSig{
-				Version:       1000,
-				PublicKey:     string(tt.pub),
-				Namespace:     sign.Namespace,
-				HashAlgorithm: sign.DefaultHashAlgorithm,
-				Signature:     string(ssh.Marshal(sig)),
-			}
-
-			copy(swv.MagicHeader[:], sign.MagicHeader)
-		
-			swvPEM := pem.EncodeToMemory(&pem.Block{
-				Type:  "SSH SIGNATURE",
-				Bytes: ssh.Marshal(sig),
-			})
-			_, err = Decode(swvPEM)
+			swv := CreateInvalidArmor(1000, string(tt.pub), sign.Namespace, sign.DefaultHashAlgorithm, sig, sign.MagicHeader)
+			_, err = Decode(swv)
 			if err == nil {
 				t.Fatalf("Decode returned no error, expected error")
 			}
-
-
 		})
 	}
 
+}
+
+func CreateInvalidArmor(v uint32, pk string, ns string, ha string, sig *ssh.Signature, mh string) []byte {
+	sw := sign.WrappedSig{
+		Version:       v,
+		PublicKey:     pk,
+		Namespace:     ns,
+		HashAlgorithm: ha,
+		Signature:     string(ssh.Marshal(sig)),
+	}
+	copy(sw.MagicHeader[:], mh)
+
+	enc := pem.EncodeToMemory(&pem.Block{
+		Type:  "SSH SIGNATURE",
+		Bytes: ssh.Marshal(sw),
+	})
+
+	return enc
 }
