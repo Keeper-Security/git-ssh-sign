@@ -35,7 +35,7 @@ var supportedHashAlgorithms = map[string]func() hash.Hash{
 
 // Decodes a PEM encoded signature into a Signature struct. If invalid or 
 // unsupported data is found, an error is returned, even if the signature is 
-// valid for other use cases ourside of the restrictions of this program. 
+// valid for other use cases outside of the restrictions of this program. 
 func Decode(b []byte) (*Signature, error) {
 	pemBlock, _ := pem.Decode(b)
 	if pemBlock == nil {
@@ -91,7 +91,7 @@ func Decode(b []byte) (*Signature, error) {
 func FindMatchingPrincipals(as []AllowedSigner, signature *Signature) ([]string, error) {
 	var matchingPrincipals []string
 	for _, p := range as {
-		// Parse into wire format
+		// Parse into SSH wire format
 		pak, _, _, _, err := ssh.ParseAuthorizedKey([]byte(p.PublicKey))
 		if err != nil {
 			return nil, err
@@ -104,6 +104,7 @@ func FindMatchingPrincipals(as []AllowedSigner, signature *Signature) ([]string,
 }
 
 // Parse a given file and returns a slice of AllowedSigners.
+// This only supports one email address per public key, currently.
 func GetAllowedSigners(f string)([]AllowedSigner, error) {
 	asf, err := os.Open(f)
 	if err != nil {
@@ -131,9 +132,9 @@ func GetAllowedSigners(f string)([]AllowedSigner, error) {
 	return allowedSigners, nil
 }
 
-// Parse a given file and returns a Signature struct.
-func ParseSignatureFile(signatureFile string) (*Signature, error) {
-	signature, err := os.Open(signatureFile)
+// Parse a given signature from a file and returns a Signature struct.
+func ParseSignatureFile(filepath string) (*Signature, error) {
+	signature, err := os.Open(filepath)
 	if err != nil {
 		return nil, err
 	}
