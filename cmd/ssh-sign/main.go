@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -112,20 +111,13 @@ func main() {
 		// Get all principals from the allowed_signers file and compare them 
 		// to the public key in the signature file.
 		
-		allowedSignersFile, err := os.Open(inputFile)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		defer allowedSignersFile.Close()
-
-		allowedSigners, err := verify.GetAllowedSigners(allowedSignersFile)
+		allowedSigners, err := verify.GetAllowedSigners(inputFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		sig, err := ParseSignatureFile(signatureFile)
+		sig, err := verify.ParseSignatureFile(signatureFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -150,8 +142,7 @@ func main() {
 	} else if action == "verify" {
 		// Successful verification by an authorized signer is signalled by
 		// ssh-keygen returning a zero exit status.
-
-		sig, err := ParseSignatureFile(signatureFile)
+		sig, err := verify.ParseSignatureFile(signatureFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -162,20 +153,13 @@ func main() {
 			os.Exit(1)
 		}
 
+		allowedSigners, err := verify.GetAllowedSigners(inputFile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		
 		// Get email of matching principal from the allowed_signers file.
-		allowedSignersFile, err := os.Open(inputFile)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		defer allowedSignersFile.Close()
-
-		allowedSigners, err := verify.GetAllowedSigners(allowedSignersFile)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
 		var principalEmail string
 		for _, p := range allowedSigners {
 			if p.PublicKey == principal {
@@ -196,7 +180,7 @@ func main() {
 		os.Exit(0)
 
 	} else if action == "check-novalidate" {
-		sig, err := ParseSignatureFile(signatureFile)
+		sig, err := verify.ParseSignatureFile(signatureFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -213,22 +197,3 @@ func main() {
 	}
 }
 
-func ParseSignatureFile(signatureFile string) (*verify.Signature, error) {
-	signature, err := os.Open(signatureFile)
-	if err != nil {
-		return nil, err
-	}
-	defer signature.Close()
-
-	sigBytes, err := io.ReadAll(signature)
-	if err != nil {
-		return nil, err
-	}
-
-	sig, err := verify.Decode(sigBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return sig, nil
-}

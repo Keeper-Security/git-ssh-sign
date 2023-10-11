@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"io"
 	"os"
 	"strings"
 
@@ -32,8 +33,10 @@ var supportedHashAlgorithms = map[string]func() hash.Hash{
 	"sha512": sha512.New,
 }
 
+// Decodes a PEM encoded signature into a Signature struct. If invalid or 
+// unsupported data is found, an error is returned, even if the signature is 
+// valid for other use cases ourside of the restrictions of this program. 
 func Decode(b []byte) (*Signature, error) {
-	// Borrowed from SigStore
 	pemBlock, _ := pem.Decode(b)
 	if pemBlock == nil {
 		return nil, errors.New("unable to decode pem file")
@@ -43,12 +46,16 @@ func Decode(b []byte) (*Signature, error) {
 		return nil, fmt.Errorf("wrong pem block type: %s. Expected SSH-SIGNATURE", pemBlock.Type)
 	}
 
-	// Now we unmarshal it into the Signature block
+	// Unmarshal into the Signature block
 	sig := sign.WrappedSig{}
 	if err := ssh.Unmarshal(pemBlock.Bytes, &sig); err != nil {
 		return nil, err
 	}
 
+	// Validation of the Signature block is done before we can unpack the 
+	// Signature and PublicKey blocks. This ensures that we don't unpack 
+	// malicious, invalid, or unsupported data. Instead, we can return an
+	// error before we do any unpacking.
 	if sig.Version != 1 {
 		return nil, fmt.Errorf("unsupported signature version: %d", sig.Version)
 	}
@@ -80,6 +87,7 @@ func Decode(b []byte) (*Signature, error) {
 	}, nil
 }
 
+// Finds matching principals for the given signature.
 func FindMatchingPrincipals(as []AllowedSigner, signature *Signature) ([]string, error) {
 	var matchingPrincipals []string
 	for _, p := range as {
@@ -95,9 +103,17 @@ func FindMatchingPrincipals(as []AllowedSigner, signature *Signature) ([]string,
 	return matchingPrincipals, nil
 }
 
-func GetAllowedSigners(f *os.File) ([]AllowedSigner, error) {
+// Parse a given file and returns a slice of AllowedSigners.
+func GetAllowedSigners(f string)([]AllowedSigner, error) {
+	asf, err := os.Open(f)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer asf.Close()
+
 	var allowedSigners []AllowedSigner
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(asf)
 	for scanner.Scan() {
 		line := scanner.Text()
 		fields := strings.Fields(line)
@@ -115,6 +131,29 @@ func GetAllowedSigners(f *os.File) ([]AllowedSigner, error) {
 	return allowedSigners, nil
 }
 
+// Parse a given file and returns a Signature struct.
+func ParseSignatureFile(signatureFile string) (*Signature, error) {
+	signature, err := os.Open(signatureFile)
+	if err != nil {
+		return nil, err
+	}
+	defer signature.Close()
+
+	sigBytes, err := io.ReadAll(signature)
+	if err != nil {
+		return nil, err
+	}
+
+	sig, err := Decode(sigBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return sig, nil
+}
+
+// Compares the fingerprint of the principal with the public key in the 
+// signature.
 func VerifyFingerprints(principal []byte, pubKey ssh.PublicKey) error {
 	// Parse into wire format
 	pak, _, _, _, err := ssh.ParseAuthorizedKey(principal)
