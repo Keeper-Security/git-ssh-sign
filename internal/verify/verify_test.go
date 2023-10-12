@@ -294,7 +294,7 @@ func TestInvalidDecode(t *testing.T) {
 			}
 
 			// Wrap the signature in a MessageWrapper with an invalid namespace
-			// and test is fails
+			// and test it fails
 			swn := CreateInvalidArmor(1, string(tt.pub), "INVALID", sign.DefaultHashAlgorithm, sig, sign.MagicHeader)
 			_, err = Decode(swn)
 			if err == nil {
@@ -302,7 +302,7 @@ func TestInvalidDecode(t *testing.T) {
 			}
 
 			// Wrap the signature in a MessageWrapper with an invalid hash and 
-			// test is fails
+			// test it fails
 			swh := CreateInvalidArmor(1, string(tt.pub), sign.Namespace, "INVALID", sig, sign.MagicHeader)
 			_, err = Decode(swh)
 			if err == nil {
