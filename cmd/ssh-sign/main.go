@@ -45,19 +45,19 @@ func main() {
 			following arguments:	
 				-Y sign -n git -f <KEY> /tmp/.git_signing_buffer_file
 
-			The <KEY> is the user.signingkey value from the git config. This will
-			be the UID of the record in the Vault.
-			The /tmp/.git_signing_buffer_file is the file that contains the commit
-			data that is to be signed.
+			The <KEY> is the user.signingkey value from the git config. This 
+			will be the UID of the record in the Vault.
+			The /tmp/.git_signing_buffer_file is the file that contains the 
+			commit data that is to be signed.
 
 			We need to:
 			1. Fetch the private key from the Vault based on the UID.
 			2. Sign the commit.
-			3. Write the signature to a file. The file name should be the same as
-			the commit file but with a .sig extension.
+			3. Write the signature to a file. The file name should be the same 
+			as the commit file but with a .sig extension.
 
-			As long as the program returns a 0 exit code, git will continue with
-			the commit, even if incorrectly signed. git wil not verify the
+			As long as the program returns a 0 exit code, git will continue 
+			with the commit, even if incorrectly signed. git wil not verify the
 			signature at the time of commiting. If the exit code is non-zero,
 			git will abort the commit.
 		*/
@@ -199,11 +199,10 @@ func main() {
 		os.Exit(0)
 
 	} else if action == "check-novalidate" {
-		// Checks the principal passed by git against the public key in the
-		// signature file. If they match, the signature is valid. At this point
-		// of the workflow, git already knows the publis key is not in the 
-		// allowed_signers file, and therefore will not be able to verify the 
-		// signature.
+		// If unable to verify the principal is in the allowed_signers file, 
+		// git hecks the principal passed by git against the public key in the 
+		// signature file. If they match, the signature is valid, but not 
+		// verified.
 		sig, err := verify.ParseSignatureFile(signatureFile)
 		if err != nil {
 			fmt.Println(err)
