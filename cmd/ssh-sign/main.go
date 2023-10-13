@@ -23,40 +23,40 @@ func main() {
 	flag.StringVar(&action, "Y", "", "Action to perform")
 	flag.StringVar(&namespace, "n", "", "Namespace")
 	flag.StringVar(&inputFile, "f", "", "SSH Key UID or allowed_signers file")
-	flag.StringVar(&signatureFile, "s", "", "Signature file for verificaton")
+	flag.StringVar(&signatureFile, "s", "", "Signature file for verification")
 	flag.StringVar(&timestamp, "Overify-time", "", "TODO")
 	flag.StringVar(&principal, "I", "", "Principal to verify")
 	flag.Parse()
 
 	if len(os.Args) == 0 {
-		fmt.Println("This program is not intended to be run directly. It is called by git when signing commits.")
+		fmt.Println("FIXME: Usage")
 		os.Exit(1)
 	}
 
 	// Only the 'git' namespace is supported.
 	if namespace != "" && namespace != "git" {
-		fmt.Println("Only the 'git' namespace is supported.")
+		fmt.Printf("Unsupported namespace \"%s\"; use 'git'.\n", namespace)
 		os.Exit(1)
 	}
 
 	if action == "sign" {
 		/*
 			When the gpg.format = ssh, git calls this program and will pass the
-			following arguments:	
+			following arguments:
 				-Y sign -n git -f <KEY> /tmp/.git_signing_buffer_file
 
-			The <KEY> is the user.signingkey value from the git config. This 
+			The <KEY> is the user.signingkey value from the git config. This
 			will be the UID of the record in the Vault.
-			The /tmp/.git_signing_buffer_file is the file that contains the 
+			The /tmp/.git_signing_buffer_file is the file that contains the
 			commit data that is to be signed.
 
 			We need to:
 			1. Fetch the private key from the Vault based on the UID.
 			2. Sign the commit.
-			3. Write the signature to a file. The file name should be the same 
+			3. Write the signature to a file. The file name should be the same
 			as the commit file but with a .sig extension.
 
-			As long as the program returns a 0 exit code, git will continue 
+			As long as the program returns a 0 exit code, git will continue
 			with the commit, even if incorrectly signed. git wil not verify the
 			signature at the time of commiting. If the exit code is non-zero,
 			git will abort the commit.
@@ -83,9 +83,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		// To ensure that git can read the final signature file, we capture the
-		// file permissions of the commit file to ensure the signature file has 
-		// the same permissions.
+		// Match the permissions of the commit file on the signature file.
 		fileinfo, err := os.Stat(commitToSign)
 		if err != nil {
 			fmt.Println(err)
@@ -108,15 +106,15 @@ func main() {
 
 	} else if action == "find-principals" {
 		/*
-			When verifying a signature locally, git will begin by collecting 
-			all the verified signers from the allowed_signers file that match 
+			When verifying a signature locally, git will begin by collecting
+			all the verified signers from the allowed_signers file that match
 			the git commit passed. If one or more principals are found, hey are
 			returned to stdout.
-			
+
 			The following arguments are passed to at this stage:
 			-Y find-principals -f <allowed_signers_file> -s <signature_file> -Overify-time=<timestamp>
 		*/
-				
+
 		allowedSigners, err := verify.GetAllowedSigners(inputFile)
 		if err != nil {
 			fmt.Println(err)
@@ -129,7 +127,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		mp, err := verify.FindMatchingPrincipals(allowedSigners, sig)
+		mp, err := verify.GetMatchingPrincipals(allowedSigners, sig)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -141,28 +139,29 @@ func main() {
 			}
 			os.Exit(0)
 		} else {
-			fmt.Println("No matching principals found")
+			fmt.Println("There are no matching principals")
 			os.Exit(1)
 		}
 
 	} else if action == "verify" {
 		/*
 			The second stage of the verification process is to verify the
-			signature against the commit data. The fingerprints of the 
-			principal are compared to the fingerprints of the public key in 
-			the signature file. If they match, the signature is considered 
-			verified. Successful verification by an authorized signer is 
+			signature against the commit data. The fingerprints of the
+			principal are compared to the fingerprints of the public key in
+			the signature file. If they match, the signature is considered
+			verified. Successful verification by an authorized signer is
 			signalled by returning a zero exit status.
 
 			The following arguments are passed to at this stage:
-			-Y verify -n git -f <allowed_signers_file> -I <principal> -s <signature_file> -Overify-time=<timestamp>
+			-Y verify -n git -f <allowed_signers_file> -I <principal> \
+			-s <signature_file> -Overify-time=<timestamp>
 		*/
 
 		sig, err := verify.ParseSignatureFile(signatureFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
-		}	
+		}
 
 		if err := verify.VerifyFingerprints([]byte(principal), sig.PublicKey); err != nil {
 			fmt.Println(err)
@@ -174,10 +173,10 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		
+
 		// Get email of the matching principal from the allowed_signers file.
 		// This is used to display the email address of the signer in stdout.
-		// Note: it is possible for multple principals to have the same email 
+		// Note: it is possible for multiple principals to have the same email
 		// address associated with them. In this case, the first match is used.
 		var principalEmail string
 		for _, p := range allowedSigners {
@@ -188,37 +187,36 @@ func main() {
 		}
 
 		// Parse the public key into SSH wire format
-		pak, _, _, _, err := ssh.ParseAuthorizedKey([]byte(principal))
+		key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(principal))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		pkType := strings.ToUpper(strings.Split(pak.Type(), "-")[1])
-		fmt.Printf("Good \"%s\" signature for %s with %s key %s\n", namespace, principalEmail, pkType, ssh.FingerprintSHA256(pak))
+		keyType := strings.ToUpper(strings.Split(key.Type(), "-")[1])
+		fmt.Printf("Signature \"%s\" for \"%s\" with %s key %s is good.\n", namespace, principalEmail, keyType, ssh.FingerprintSHA256(key))
 		os.Exit(0)
 
 	} else if action == "check-novalidate" {
-		// If unable to verify the principal is in the allowed_signers file, 
-		// git hecks the principal passed by git against the public key in the 
-		// signature file. If they match, the signature is valid, but not 
+		// If unable to verify the principal is in the allowed_signers file,
+		// git hecks the principal passed by git against the public key in the
+		// signature file. If they match, the signature is valid, but not
 		// verified.
 		sig, err := verify.ParseSignatureFile(signatureFile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
-		}	
+		}
 
-		pkType := strings.ToUpper(strings.Split(sig.PublicKey.Type(), "-")[1])
-		fmt.Printf("Good \"%s\" signature with %s key %s\n", namespace, pkType, ssh.FingerprintSHA256(sig.PublicKey))
-		fmt.Println("No principal matched")
+		keyType := strings.ToUpper(strings.Split(sig.PublicKey.Type(), "-")[1])
+		fmt.Printf("Signature \"%s\" with %s key %s is good.\n", namespace, keyType, ssh.FingerprintSHA256(sig.PublicKey))
+		fmt.Println("No matching principal")
 		os.Exit(0)
 
 	} else {
 		// The only unsupported action is 'match-principals' as it is not used
 		// by git.
-		fmt.Println("Unsupported action. Only 'sign', 'find-principals', 'verify', and 'check-novalidate' are supported")
+		fmt.Printf("Unsupported action, '%s'; try 'check-novalidate', 'find-principals', 'sign', or 'verify'.\n", action)
 		os.Exit(1)
 	}
 }
-

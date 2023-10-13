@@ -33,9 +33,9 @@ var supportedHashAlgorithms = map[string]func() hash.Hash{
 	"sha512": sha512.New,
 }
 
-// Decodes a PEM encoded signature into a Signature struct. If invalid or 
-// unsupported data is found, an error is returned, even if the signature is 
-// valid for other use cases outside of the restrictions of this program. 
+// Decodes a PEM encoded signature into a Signature struct. If invalid or
+// unsupported data is found, an error is returned, even if the signature is
+// valid for other use cases outside of the restrictions of this program.
 func Decode(b []byte) (*Signature, error) {
 	pemBlock, _ := pem.Decode(b)
 	if pemBlock == nil {
@@ -43,7 +43,7 @@ func Decode(b []byte) (*Signature, error) {
 	}
 
 	if pemBlock.Type != "SSH SIGNATURE" {
-		return nil, fmt.Errorf("wrong pem block type: %s. Expected SSH-SIGNATURE", pemBlock.Type)
+		return nil, fmt.Errorf("unsupported block type '%s'", pemBlock.Type)
 	}
 
 	// Unmarshal into the Signature block
@@ -52,51 +52,51 @@ func Decode(b []byte) (*Signature, error) {
 		return nil, err
 	}
 
-	// Validation of the Signature block is done before we can unpack the 
-	// Signature and PublicKey blocks. This ensures that we don't unpack 
+	// Validation of the Signature block is done before we can unpack the
+	// Signature and PublicKey blocks. This ensures that we don't unpack
 	// malicious, invalid, or unsupported data. Instead, we can return an
 	// error before we do any unpacking.
 	if sig.Version != 1 {
 		return nil, fmt.Errorf("unsupported signature version: %d", sig.Version)
 	}
 	if string(sig.MagicHeader[:]) != sign.MagicHeader {
-		return nil, fmt.Errorf("invalid magic header: %s", sig.MagicHeader[:])
+		return nil, fmt.Errorf("invalid magic header: '%s'", sig.MagicHeader[:])
 	}
 	if sig.Namespace != sign.Namespace {
-		return nil, fmt.Errorf("invalid signature namespace: %s", sig.Namespace)
+		return nil, fmt.Errorf("invalid signature namespace: '%s'", sig.Namespace)
 	}
 	if _, ok := supportedHashAlgorithms[sig.HashAlgorithm]; !ok {
-		return nil, fmt.Errorf("unsupported hash algorithm: %s", sig.HashAlgorithm)
+		return nil, fmt.Errorf("unsupported hash algorithm: '%s'", sig.HashAlgorithm)
 	}
 
 	// Now we can unpack the Signature and PublicKey blocks
-	sshSig := ssh.Signature{}
-	if err := ssh.Unmarshal([]byte(sig.Signature), &sshSig); err != nil {
+	signature := ssh.Signature{}
+	if err := ssh.Unmarshal([]byte(sig.Signature), &signature); err != nil {
 		return nil, err
 	}
 
-	pk, err := ssh.ParsePublicKey([]byte(sig.PublicKey))
+	publicKey, err := ssh.ParsePublicKey([]byte(sig.PublicKey))
 	if err != nil {
 		return nil, err
 	}
 
 	return &Signature{
-		Signature:     &sshSig,
-		PublicKey:     pk,
+		Signature:     &signature,
+		PublicKey:     publicKey,
 		HashAlgorithm: sig.HashAlgorithm,
 	}, nil
 }
 
 // Finds matching principals for the given signature.
-func FindMatchingPrincipals(as []AllowedSigner, signature *Signature) ([]string, error) {
+func GetMatchingPrincipals(as []AllowedSigner, signature *Signature) ([]string, error) {
 	var matchingPrincipals []string
 	for _, p := range as {
 		// Parse into SSH wire format
-		pak, _, _, _, err := ssh.ParseAuthorizedKey([]byte(p.PublicKey))
+		authorizedKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(p.PublicKey))
 		if err != nil {
 			return nil, err
 		}
-		if bytes.Equal(signature.PublicKey.Marshal(), pak.Marshal()) {
+		if bytes.Equal(signature.PublicKey.Marshal(), authorizedKey.Marshal()) {
 			matchingPrincipals = append(matchingPrincipals, p.PublicKey)
 		}
 	}
@@ -105,7 +105,7 @@ func FindMatchingPrincipals(as []AllowedSigner, signature *Signature) ([]string,
 
 // Parse a given file and returns a slice of AllowedSigners.
 // This only supports one email address per public key, currently.
-func GetAllowedSigners(f string)([]AllowedSigner, error) {
+func GetAllowedSigners(f string) ([]AllowedSigner, error) {
 	asf, err := os.Open(f)
 	if err != nil {
 		fmt.Println(err)
@@ -118,10 +118,9 @@ func GetAllowedSigners(f string)([]AllowedSigner, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		fields := strings.Fields(line)
-
 		as := AllowedSigner{
-			Email: fields[0],
-			PublicKey: fields[1]+ " " + fields[2],
+			Email:     fields[0],
+			PublicKey: fields[1] + " " + fields[2],
 		}
 		allowedSigners = append(allowedSigners, as)
 	}
@@ -153,16 +152,16 @@ func ParseSignatureFile(filepath string) (*Signature, error) {
 	return sig, nil
 }
 
-// Compares the fingerprint of the principal with the public key in the 
+// Compares the fingerprint of the principal with the public key in the
 // signature.
 func VerifyFingerprints(principal []byte, pubKey ssh.PublicKey) error {
 	// Parse into wire format
-	pak, _, _, _, err := ssh.ParseAuthorizedKey(principal)
+	key, _, _, _, err := ssh.ParseAuthorizedKey(principal)
 	if err != nil {
 		return err
 	}
 
-	principalHash := []byte(ssh.FingerprintSHA256(pak))
+	principalHash := []byte(ssh.FingerprintSHA256(key))
 	pubKeyHash := []byte(ssh.FingerprintSHA256(pubKey))
 
 	if bytes.Equal(principalHash, pubKeyHash) {

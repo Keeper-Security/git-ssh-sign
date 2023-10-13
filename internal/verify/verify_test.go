@@ -21,7 +21,7 @@ QyNTUxOQAAACBEL0qwb9vCiwI2Du6Q/daa4ZXp65t4WeAew3XAf+Px/gAAAJjrEknt6xJJ
 7QAAAAtzc2gtZWQyNTUxOQAAACBEL0qwb9vCiwI2Du6Q/daa4ZXp65t4WeAew3XAf+Px/g
 AAAECc4rBgLCDFFGGM1TOtV5VpkGTERsYw/237NqOB/AtCOEQvSrBv28KLAjYO7pD91prh
 lenrm3hZ4B7DdcB/4/H+AAAAEHRlc3RAZXhhbXBsZS5jb20BAgMEBQ==
------END OPENSSH PRIVATE KEY-----		
+-----END OPENSSH PRIVATE KEY-----
 `
 
 	ed25519PublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEQvSrBv28KLAjYO7pD91prhlenrm3hZ4B7DdcB/4/H+"
@@ -84,7 +84,7 @@ var (
 	}
 )
 
-func TestFindMatchingPrincipals(t *testing.T) {
+func TestGetMatchingPrincipals(t *testing.T) {
 	principal, _, _, _, err := ssh.ParseAuthorizedKey([]byte(allowedSigners[0].PublicKey))
 	if err != nil {
 		t.Fatalf("Failed to parse test principal: %v", err)
@@ -95,15 +95,15 @@ func TestFindMatchingPrincipals(t *testing.T) {
 	}
 
 	// Find matching principals
-	matchingPrincipals, err := FindMatchingPrincipals(allowedSigners, sig)
+	matchingPrincipals, err := GetMatchingPrincipals(allowedSigners, sig)
 	if err != nil {
-		t.Fatalf("FindMatchingPrincipals returned an error: %v", err)
+		t.Fatalf("GetMatchingPrincipals returned an error: %v", err)
 	}
 
 	// Check that the correct principals were found
 	expectedPrincipals := []string{allowedSigners[0].PublicKey}
 	if !reflect.DeepEqual(matchingPrincipals, expectedPrincipals) {
-		t.Errorf("FindMatchingPrincipals returned %v, expected %v", matchingPrincipals, expectedPrincipals)
+		t.Errorf("GetMatchingPrincipals returned %v, expected %v", matchingPrincipals, expectedPrincipals)
 	}
 }
 
@@ -301,7 +301,7 @@ func TestInvalidDecode(t *testing.T) {
 				t.Fatalf("Decode returned no error, expected error")
 			}
 
-			// Wrap the signature in a MessageWrapper with an invalid hash and 
+			// Wrap the signature in a MessageWrapper with an invalid hash and
 			// test it fails
 			swh := CreateInvalidArmor(1, string(tt.pub), sign.Namespace, "INVALID", sig, sign.MagicHeader)
 			_, err = Decode(swh)
