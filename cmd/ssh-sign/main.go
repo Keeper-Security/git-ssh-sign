@@ -24,7 +24,7 @@ func main() {
 	flag.StringVar(&namespace, "n", "", "Namespace")
 	flag.StringVar(&inputFile, "f", "", "SSH Key UID or allowed_signers file")
 	flag.StringVar(&signatureFile, "s", "", "Signature file for verification")
-	flag.StringVar(&timestamp, "Overify-time", "", "TODO")
+	flag.StringVar(&timestamp, "Overify-time", "", "Timestamp for verification of SSH Key. Not implemented.")
 	flag.StringVar(&principal, "I", "", "Principal to verify")
 	flag.Parse()
 
@@ -192,9 +192,13 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-
 		keyType := strings.ToUpper(strings.Split(key.Type(), "-")[1])
-		fmt.Printf("Signature \"%s\" for \"%s\" with %s key %s is good.\n", namespace, principalEmail, keyType, ssh.FingerprintSHA256(key))
+
+		// Output the result to stdout, which will be used by git to determine
+		// if the commit is valid. This output mirrors the output of the
+		// default ssh git signing method (ssh-keygen). This is done to ensure
+		// compatibility with git.
+		fmt.Printf("Good \"%s\" signature for %s with %s key %s\n", namespace, principalEmail, keyType, ssh.FingerprintSHA256(key))
 		os.Exit(0)
 
 	} else if action == "check-novalidate" {
@@ -207,9 +211,12 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-
 		keyType := strings.ToUpper(strings.Split(sig.PublicKey.Type(), "-")[1])
-		fmt.Printf("Signature \"%s\" with %s key %s is good.\n", namespace, keyType, ssh.FingerprintSHA256(sig.PublicKey))
+
+		// As above, this output mirrors the output of the default ssh git
+		// signing method (ssh-keygen). This is done to ensure compatibility
+		// with git.
+		fmt.Printf("Good \"%s\" signature with %s key %s\n", namespace, keyType, ssh.FingerprintSHA256(sig.PublicKey))
 		fmt.Println("No matching principal")
 		os.Exit(0)
 
