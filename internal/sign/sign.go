@@ -33,22 +33,22 @@ type WrappedSig struct {
 }
 
 const (
-	magicHeader          = "SSHSIG"
-	defaultHashAlgorithm = "sha512"
-	namespace            = "git"
+	MagicHeader          = "SSHSIG"
+	DefaultHashAlgorithm = "sha512"
+	Namespace            = "git"
 )
 
 // Create an Armored (PEM) Signature
-func armor(sshSig *ssh.Signature, pubKey ssh.PublicKey) []byte {
+func Armor(sshSig *ssh.Signature, pubKey ssh.PublicKey) []byte {
 	sig := WrappedSig{
 		Version:       1,
 		PublicKey:     string(pubKey.Marshal()),
-		Namespace:     namespace,
-		HashAlgorithm: defaultHashAlgorithm,
+		Namespace:     Namespace,
+		HashAlgorithm: DefaultHashAlgorithm,
 		Signature:     string(ssh.Marshal(sshSig)),
 	}
 
-	copy(sig.MagicHeader[:], magicHeader)
+	copy(sig.MagicHeader[:], MagicHeader)
 
 	enc := pem.EncodeToMemory(&pem.Block{
 		Type:  "SSH SIGNATURE",
@@ -58,7 +58,7 @@ func armor(sshSig *ssh.Signature, pubKey ssh.PublicKey) []byte {
 }
 
 // Create a signature for the given data using the given signer.
-func signature(signer ssh.AlgorithmSigner, data io.Reader) (*ssh.Signature, error) {
+func NewSignature(signer ssh.AlgorithmSigner, data io.Reader) (*ssh.Signature, error) {
 	hf := sha512.New()
 	if _, err := io.Copy(hf, data); err != nil {
 		return nil, err
@@ -66,13 +66,13 @@ func signature(signer ssh.AlgorithmSigner, data io.Reader) (*ssh.Signature, erro
 	mh := hf.Sum(nil)
 
 	sp := MessageWrapper{
-		Namespace:     namespace,
-		HashAlgorithm: defaultHashAlgorithm,
+		Namespace:     Namespace,
+		HashAlgorithm: DefaultHashAlgorithm,
 		Hash:          string(mh),
 	}
 
 	dataMessageWrapper := ssh.Marshal(sp)
-	dataMessageWrapper = append([]byte(magicHeader), dataMessageWrapper...)
+	dataMessageWrapper = append([]byte(MagicHeader), dataMessageWrapper...)
 
 	// ssh-rsa is not supported for RSA keys:
 	// https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.sshsig#L71
@@ -100,11 +100,11 @@ func SignCommit(sshPrivateKey string, data io.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	sig, err := signature(as, data)
+	sig, err := NewSignature(as, data)
 	if err != nil {
 		return nil, err
 	}
 
-	armored := armor(sig, s.PublicKey())
+	armored := Armor(sig, s.PublicKey())
 	return armored, nil
 }

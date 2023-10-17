@@ -135,6 +135,24 @@ To sign commits automatically, i.e., without the `-S` run:
 git config commit.gpgsign true
 ```
 
+### Local verification
+
+To verify signatures locally with a command such as `git log --show-signature -1`, you must create an `allowed_signers` file with trusted SSH public keys. Typically this file is saved either globally at `.ssh/allowed_signers` or in the local repo at `.git/allowed_signers`. The path to this file needs then to be added to your `.gitconfig` or `.git/config` file. 
+
+```shell
+git config gpg.ssh.allowedSignersFile path/to/file
+```
+
+Each line of your `allowed_signers` file should be a prinicipal of an authorized signing key. The line should start with the email address associated with the public key, seperated by a space.
+
+```text
+test@example.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEQvSrBv28KLAjYO7pD91prhlenrm3hZ4B7DdcB/4/H+
+```
+
+> The format of the allowed signers file is documented in full [here](https://www.man7.org/linux/man-pages/man1/ssh-keygen.1.html#:~:text=key%20was%20revoked.-,ALLOWED%20SIGNERS,-top). 
+
+While it is correct syntax to have more than one email address associate with a single public key, it is not recommend or currently supported.
+
 ## Troubleshooting
 
 Git will execute `path/to/ssh-sign -Y sign -Y sign -n git -f SSH-Key-UID some-input.txt`.

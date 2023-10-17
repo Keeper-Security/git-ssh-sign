@@ -13,6 +13,11 @@ type ConfigOptions struct {
 	ConfigFileBackup string
 }
 
+type KeyPair struct {
+	PrivateKey string
+	PublicKey  string
+}
+
 // Build the config options based on the given options.
 func buildConfigOptions(h string) ConfigOptions {
 	return ConfigOptions{
@@ -36,11 +41,11 @@ func getConfig(options ConfigOptions) (string, error) {
 
 // Fetch a private key from the Vault via the Keeper Secrets Manager based on
 // the UID in the git config.
-func FetchPrivateKey(uid string) (string, error) {
+func FetchKeys(uid string) (*KeyPair, error) {
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Get config file path to be used for the KSM
@@ -55,17 +60,19 @@ func FetchPrivateKey(uid string) (string, error) {
 
 	records, err := sm.GetSecrets([]string{uid})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if len(records) == 0 {
-		return "", fmt.Errorf("no records found for UID: %s", uid)
+		return nil, fmt.Errorf("no records found for UID: %s", uid)
 	}
 
 	// GetFieldsByType returns an array of Field objects that match the
 	// specified type. In this case, we are filtering for fields of type
-	// "keyPair", as we only care about the private key.
+	// "keyPair".
 	keys := records[0].GetFieldsByType("keyPair")[0]["value"].([]interface{})[0]
-	privateKey := keys.(map[string]interface{})["privateKey"].(string)
 
-	return privateKey, nil
+	return &KeyPair{
+		PrivateKey: keys.(map[string]interface{})["privateKey"].(string),
+		PublicKey:  keys.(map[string]interface{})["publicKey"].(string),
+	}, nil
 }
