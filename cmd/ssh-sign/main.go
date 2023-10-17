@@ -29,7 +29,7 @@ func main() {
 	flag.Parse()
 
 	if len(os.Args) == 0 {
-		fmt.Println("FIXME: Usage")
+		fmt.Println("This binary is called by git to sign and verify commits with SSH Keys. It is not intended to be ran directly. To setup and use this tool, please refer to the following documentation: https://docs.keeper.io/secrets-manager/secrets-manager/integrations/git-sign-commits-with-ssh")
 		os.Exit(1)
 	}
 
