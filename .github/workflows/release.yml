@@ -24,7 +24,7 @@ jobs:
           p12-file-base64: ${{ secrets.CODESIGN_CERT_P12 }}
           p12-password: ${{ secrets.CODESIGN_CERT_P12_PWD }}
 
-      - uses: crazy-max/ghaction-import-gpg@v5
+      - uses: crazy-max/ghaction-import-gpg@v6
         with:
           fingerprint: "${{ secrets.GPG_FINGERPRINT }}"
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
