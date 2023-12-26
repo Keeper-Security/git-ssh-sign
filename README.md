@@ -33,6 +33,11 @@ The integration expects a KSM Application Configuration file at either
 `ssh-sign.json`
 relative to the user's home directory.
 It must have access to a Shared Folder that contains the SSH key.
+For help in obtaining a KSM configuration in JSON format, 
+[follow these instructions](https://docs.keeper.io/secrets-manager/secrets-manager/about/secrets-manager-configuration#creating-a-secrets-manager-configuration).
+
+> For help setting up the KSM and creating an application, head to the 
+> [official docs](https://docs.keeper.io/secrets-manager/secrets-manager/quick-start-guide).
 
 ### CLI-based Configuration
 
