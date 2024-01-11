@@ -67,15 +67,46 @@ func FetchKeys(uid string) (*KeyPair, error) {
 		return nil, fmt.Errorf("no records found for UID: %s", uid)
 	}
 
-	// GetFieldsByType returns an array of Field objects that match the
-	// specified type. In this case, we are filtering for fields of type
-	// "keyPair".
-	keys := records[0].GetFieldsByType("keyPair")[0]["value"].([]interface{})[0]
-	pass := records[0].GetFieldsByType("password")[0]["value"].([]interface{})[0].(string)
+	pubkey := ""
+	privkey := ""
+	if keys := records[0].GetFieldsByType("keyPair"); len(keys) > 0 {
+		if kval, found := keys[0]["value"]; found {
+			if sval, ok := kval.([]interface{}); ok && len(sval) > 0 {
+				if mval, ok := sval[0].(map[string]interface{}); ok && len(mval) > 0 {
+					if ipub, ok := mval["publicKey"]; ok {
+						if pub, ok := ipub.(string); ok {
+							pubkey = pub
+						}
+					}
+					if ipriv, ok := mval["privateKey"]; ok {
+						if priv, ok := ipriv.(string); ok {
+							privkey = priv
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// public key can be extracted from private key, password is optional
+	if privkey == "" {
+		return nil, fmt.Errorf("no SSH keys found in UID: %s", uid)
+	}
+
+	password := ""
+	if pass := records[0].GetFieldsByType("password"); len(pass) > 0 {
+		if pval, found := pass[0]["value"]; found {
+			if sval, ok := pval.([]interface{}); ok && len(sval) > 0 {
+				if strval, ok := sval[0].(string); ok {
+					password = strval
+				}
+			}
+		}
+	}
 
 	return &KeyPair{
-		PrivateKey: keys.(map[string]interface{})["privateKey"].(string),
-		PublicKey:  keys.(map[string]interface{})["publicKey"].(string),
-		Passphrase: pass,
+		PrivateKey: privkey,
+		PublicKey:  pubkey,
+		Passphrase: password,
 	}, nil
 }
