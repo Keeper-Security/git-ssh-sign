@@ -16,6 +16,7 @@ type ConfigOptions struct {
 type KeyPair struct {
 	PrivateKey string
 	PublicKey  string
+	Passphrase string
 }
 
 // Build the config options based on the given options.
@@ -70,9 +71,11 @@ func FetchKeys(uid string) (*KeyPair, error) {
 	// specified type. In this case, we are filtering for fields of type
 	// "keyPair".
 	keys := records[0].GetFieldsByType("keyPair")[0]["value"].([]interface{})[0]
+	pass := records[0].GetFieldsByType("password")[0]["value"].([]interface{})[0].(string)
 
 	return &KeyPair{
 		PrivateKey: keys.(map[string]interface{})["privateKey"].(string),
 		PublicKey:  keys.(map[string]interface{})["publicKey"].(string),
+		Passphrase: pass,
 	}, nil
 }

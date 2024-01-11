@@ -4,12 +4,13 @@ import (
 	"crypto/rand"
 	"crypto/sha512"
 	"encoding/pem"
-	"golang.org/x/crypto/ssh"
 	"io"
+
+	"golang.org/x/crypto/ssh"
 )
 
-/* 
-	The code in this module is heavily based on the great work done by the 
+/*
+	The code in this module is heavily based on the great work done by the
 	sigstore/rekor project: https://github.com/sigstore/rekor/
 */
 
@@ -89,8 +90,14 @@ func NewSignature(signer ssh.AlgorithmSigner, data io.Reader) (*ssh.Signature, e
 }
 
 // Sign a commit(data) using the given private key.
-func SignCommit(sshPrivateKey string, data io.Reader) ([]byte, error) {
-	s, err := ssh.ParsePrivateKey([]byte(sshPrivateKey))
+func SignCommit(sshPrivateKey string, passphrase string, data io.Reader) ([]byte, error) {
+	var err error
+	var s ssh.Signer
+	if passphrase != "" {
+		s, err = ssh.ParsePrivateKeyWithPassphrase([]byte(sshPrivateKey), []byte(passphrase))
+	} else {
+		s, err = ssh.ParsePrivateKey([]byte(sshPrivateKey))
+	}
 	if err != nil {
 		return nil, err
 	}
