@@ -181,6 +181,8 @@ rIalDYl8KKK+DPrwiF4KCKoovNN2xXu04ljxLH9O3byUcA==
 
 ## Contributing
 
+Please read and refer to the [contribution guide](https://github.com/Keeper-Security/git-ssh-sign/blob/main/CONTRIBUTING.md) before making your first PR.
+
 This module uses the built-in Golang tooling for building and testing:
 
 ```shell
