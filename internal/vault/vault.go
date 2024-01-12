@@ -67,46 +67,34 @@ func FetchKeys(uid string) (*KeyPair, error) {
 		return nil, fmt.Errorf("no records found for UID: %s", uid)
 	}
 
-	pubkey := ""
-	privkey := ""
-	if keys := records[0].GetFieldsByType("keyPair"); len(keys) > 0 {
-		if kval, found := keys[0]["value"]; found {
-			if sval, ok := kval.([]interface{}); ok && len(sval) > 0 {
-				if mval, ok := sval[0].(map[string]interface{}); ok && len(mval) > 0 {
-					if ipub, ok := mval["publicKey"]; ok {
-						if pub, ok := ipub.(string); ok {
-							pubkey = pub
-						}
-					}
-					if ipriv, ok := mval["privateKey"]; ok {
-						if priv, ok := ipriv.(string); ok {
-							privkey = priv
-						}
-					}
-				}
-			}
-		}
+	// GetFieldsByType returns an array of Field objects that match the
+	// specified type. In this case, we are filtering for fields of type
+	// "keyPair".
+	keys := records[0].GetFieldsByType("keyPair")[0]["value"].([]interface{})[0]
+
+	privateKey, ok := keys.(map[string]interface{})["privateKey"].(string)
+	if !ok || (privateKey == "") {
+		return nil, fmt.Errorf("no private key found for UID: %s", uid)
 	}
 
-	// public key can be extracted from private key, password is optional
-	if privkey == "" {
-		return nil, fmt.Errorf("no SSH keys found in UID: %s", uid)
+	publicKey, ok := keys.(map[string]interface{})["publicKey"].(string)
+	if !ok || (publicKey == ""){
+		return nil, fmt.Errorf("no public key found for UID: %s", uid)
 	}
 
-	password := ""
-	if pass := records[0].GetFieldsByType("password"); len(pass) > 0 {
-		if pval, found := pass[0]["value"]; found {
-			if sval, ok := pval.([]interface{}); ok && len(sval) > 0 {
-				if strval, ok := sval[0].(string); ok {
-					password = strval
-				}
-			}
+	// If a passphrase is set, it is stored in the password field of the
+	// SSH template. If no passphrase is set, passPhrase is set to an empty 
+	// string.
+	passPhrase := ""
+	if passArr, ok := records[0].GetFieldsByType("password")[0]["value"].([]interface{}); ok && len(passArr) > 0 {
+		if passStr, ok := passArr[0].(string); ok {
+			passPhrase = passStr
 		}
 	}
 
 	return &KeyPair{
-		PrivateKey: privkey,
-		PublicKey:  pubkey,
-		Passphrase: password,
+		PrivateKey: privateKey,
+		PublicKey:  publicKey,
+		Passphrase: passPhrase,
 	}, nil
 }
