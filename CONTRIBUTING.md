@@ -16,7 +16,7 @@ Thank you for considering contributing to `git-ssh-sign`! We welcome contributio
 
 ## Code of Conduct
 
-We have adopted a Code of Conduct that we expect project participants to adhere to. Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for details.
+We have adopted a Code of Conduct that we expect project participants to adhere to. Please read [CODE_OF_CONDUCT.md](https://github.com/Keeper-Security/git-ssh-sign/tree/main/.github/CODE_OF_CONDUCT.md) for details.
 
 ## Getting Started
 

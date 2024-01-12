@@ -17,7 +17,7 @@ Tell us what _actually_ happens
 
 **Your environment**
 
-Tell us more about your environment; such as, What OS are you running? What version of _pluginName_ are you using? Etc.
+Tell us more about your environment; such as, What OS are you running? What version of `git-ssh-sign` are you using? Etc.
 
 **Steps to reproduce**
 
