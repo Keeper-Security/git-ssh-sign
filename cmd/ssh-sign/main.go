@@ -91,7 +91,7 @@ func main() {
 		}
 		fileMode := fileinfo.Mode()
 
-		sig, err := sign.SignCommit(keyPair.PrivateKey, file)
+		sig, err := sign.SignCommit(keyPair.PrivateKey, keyPair.Passphrase, file)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

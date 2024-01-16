@@ -16,6 +16,7 @@ type ConfigOptions struct {
 type KeyPair struct {
 	PrivateKey string
 	PublicKey  string
+	Passphrase string
 }
 
 // Build the config options based on the given options.
@@ -71,8 +72,29 @@ func FetchKeys(uid string) (*KeyPair, error) {
 	// "keyPair".
 	keys := records[0].GetFieldsByType("keyPair")[0]["value"].([]interface{})[0]
 
+	privateKey, ok := keys.(map[string]interface{})["privateKey"].(string)
+	if !ok || (privateKey == "") {
+		return nil, fmt.Errorf("no private key found for UID: %s", uid)
+	}
+
+	publicKey, ok := keys.(map[string]interface{})["publicKey"].(string)
+	if !ok || (publicKey == ""){
+		return nil, fmt.Errorf("no public key found for UID: %s", uid)
+	}
+
+	// If a passphrase is set, it is stored in the password field of the
+	// SSH template. If no passphrase is set, passPhrase is set to an empty 
+	// string.
+	passPhrase := ""
+	if passArr, ok := records[0].GetFieldsByType("password")[0]["value"].([]interface{}); ok && len(passArr) > 0 {
+		if passStr, ok := passArr[0].(string); ok {
+			passPhrase = passStr
+		}
+	}
+
 	return &KeyPair{
-		PrivateKey: keys.(map[string]interface{})["privateKey"].(string),
-		PublicKey:  keys.(map[string]interface{})["publicKey"].(string),
+		PrivateKey: privateKey,
+		PublicKey:  publicKey,
+		Passphrase: passPhrase,
 	}, nil
 }

@@ -87,7 +87,7 @@ func TestSignCommit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := SignCommit(tt.key, data)
+			_, err := SignCommit(tt.key, "", data)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TestSignCommit expected: %v, got: %v", tt.wantErr, err)
 				return
@@ -95,4 +95,3 @@ func TestSignCommit(t *testing.T) {
 		})
 	}
 }
-
