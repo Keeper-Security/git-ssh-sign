@@ -68,14 +68,17 @@ jobs:
           done
 
       - name: Create checksums
-        run: shasum -a 256 *-${{ github.ref_name }}_*_*  >| checksums.txt
+        run: |
+          shasum -a 256 *-${{ github.ref_name }}_*_* >| checksums.txt
+          file *-${{ github.ref_name }}_*_* checksums.txt
 
       - name: Sign checksums
         run: |
-          gpg --batch --yes --detach-sign --armor \
+          GPG_TTY=$(tty) gpg -vvv --batch --yes --detach-sign --armor \
             --local-user "${{ secrets.GPG_FINGERPRINT }}" \
+            --output checksums.txt.sig \
             --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-            --output checksums.txt.sig checksums.txt
+            --pinentry-mode loopback checksums.txt
 
       - name: Create release
         env:
