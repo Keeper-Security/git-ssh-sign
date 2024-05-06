@@ -1,5 +1,5 @@
-github.com/keeper-security/secrets-manager-go/core v1.6.2 h1:bRZUJI/s5WwVbceSNlKyKqYuBNKkZCyNPH4lU2GYiF0=
-github.com/keeper-security/secrets-manager-go/core v1.6.2/go.mod h1:dtlaeeds9+SZsbDAZnQRsDSqEAK9a62SYtqhNql+VgQ=
+github.com/keeper-security/secrets-manager-go/core v1.6.3 h1:XEHZ8fQ2DFBISK80jWdHmzT56PFqEkXSkakqZxTD8zI=
+github.com/keeper-security/secrets-manager-go/core v1.6.3/go.mod h1:dtlaeeds9+SZsbDAZnQRsDSqEAK9a62SYtqhNql+VgQ=
 golang.org/x/crypto v0.22.0 h1:g1v0xeRhjcugydODzvb3mEM9SQ0HGp9s/nh3COQ/C30=
 golang.org/x/crypto v0.22.0/go.mod h1:vr6Su+7cTlO45qkww3VDJlzDn0ctJvRgYbC2NvXHt+M=
 golang.org/x/sys v0.19.0 h1:q5f1RH2jigJ1MoAWp2KTp3gm5zAGFUTarQZ5U386+4o=
